@@ -6,8 +6,8 @@ from sqlalchemy.sql import func
 
 from backend.models import User, Category, Product, Order, OrderItem, Message
 
-ModelType = TypeVar('ModelType')
-SchemaType = TypeVar('SchemaType', bound=BaseModel)
+ModelType = TypeVar("ModelType")
+SchemaType = TypeVar("SchemaType", bound=BaseModel)
 
 
 class CRUDBase(Generic[ModelType, SchemaType]):
@@ -21,7 +21,9 @@ class CRUDBase(Generic[ModelType, SchemaType]):
         result = await db.execute(select(self.model))
         return result.scalars().all()
 
-    async def create(self, db: AsyncSession, obj_in: SchemaType, extra_fields: dict | None = None) -> ModelType:
+    async def create(
+        self, db: AsyncSession, obj_in: SchemaType, extra_fields: dict | None = None
+    ) -> ModelType:
         obj_data = obj_in.dict()
         if extra_fields:
             obj_data.update(extra_fields)
@@ -54,7 +56,9 @@ class CRUDBase(Generic[ModelType, SchemaType]):
                 select(self.model).where(self.model.telegram_id == telegram_id)
             )
             return result.scalar_one_or_none()
-        raise AttributeError(f"Model {self.model.__name__} does not have a 'telegram_id' attribute")
+        raise AttributeError(
+            f"Model {self.model.__name__} does not have a 'telegram_id' attribute"
+        )
 
 
 user_crud = CRUDBase(User)
@@ -70,8 +74,12 @@ class CRUDAdmin:
         """Получение статистики для админ-панели"""
         total_users = await db.execute(select(func.count()).select_from(User))
         total_orders = await db.execute(select(func.count()).select_from(Order))
-        total_revenue = await db.execute(select(func.sum(OrderItem.price)).select_from(OrderItem))
-        unread_messages = await db.execute(select(func.count()).select_from(Message).where(Message.is_read == False))
+        total_revenue = await db.execute(
+            select(func.sum(OrderItem.price)).select_from(OrderItem)
+        )
+        unread_messages = await db.execute(
+            select(func.count()).select_from(Message).where(Message.is_read.is_(False))
+        )
 
         return {
             "total_users": total_users.scalar_one(),

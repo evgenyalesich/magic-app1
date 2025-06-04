@@ -1,0 +1,16 @@
+# .pre-commit-config.yaml
+repos:
+  # ---------- Python formatter ----------
+  - repo: https://github.com/psf/black
+    rev: 24.4.1               # актуальный стабильный релиз Black :contentReference[oaicite:0]{index=0}
+    hooks:
+      - id: black
+        # не трогаем фронтенд-папку, чтобы Black не ругался на JS/TS-файлы
+        exclude: '^frontend/'
+
+  # ---------- Python linter + isort ----------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # воспользуемся последним tag v0.4.4 (сам pre-commit потом легко обновится)
+    rev: v0.4.4
+    hooks:
+      - id: ruff        # включает lint + авто-fix + сортировку импортов

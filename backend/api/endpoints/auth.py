@@ -1,4 +1,3 @@
-
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -15,10 +14,7 @@ ADMIN_TELEGRAM_ID = 11111111
 
 
 @router.post("/login", response_model=UserSchema)
-async def login(
-    user: UserCreate,
-    db: AsyncSession = Depends(db_session)
-):
+async def login(user: UserCreate, db: AsyncSession = Depends(db_session)):
 
     logger.info(f"🔑 Логин пользователя: {user.telegram_id} ({user.username})")
 
@@ -26,17 +22,13 @@ async def login(
         raise HTTPException(status_code=400, detail="Telegram ID обязателен")
 
     # Ищем в БД
-    existing_user = await user_crud.get_by_telegram_id(
-        db, telegram_id=user.telegram_id
-    )
+    existing_user = await user_crud.get_by_telegram_id(db, telegram_id=user.telegram_id)
 
     if not existing_user:
         # Если нет — создаём
-        is_admin = (user.telegram_id == ADMIN_TELEGRAM_ID)
+        is_admin = user.telegram_id == ADMIN_TELEGRAM_ID
         user_in_db = await user_crud.create(
-            db,
-            obj_in=user,
-            extra_fields={"is_admin": is_admin}
+            db, obj_in=user, extra_fields={"is_admin": is_admin}
         )
         logger.info(f"✅ Пользователь {user_in_db.username} зарегистрирован в БД.")
     else:
@@ -47,10 +39,7 @@ async def login(
 
 
 @router.get("/user/{telegram_id}", response_model=UserSchema)
-async def get_user(
-    telegram_id: int,
-    db: AsyncSession = Depends(db_session)
-):
+async def get_user(telegram_id: int, db: AsyncSession = Depends(db_session)):
 
     logger.info(f"📌 Запрос пользователя с Telegram ID: {telegram_id}")
 
@@ -65,11 +54,9 @@ async def get_user(
 
 async def get_current_user(
     telegram_id: int = Query(
-        ...,
-        alias="telegram_id",
-        description="Telegram ID текущего пользователя"
+        ..., alias="telegram_id", description="Telegram ID текущего пользователя"
     ),
-    db: AsyncSession = Depends(db_session)
+    db: AsyncSession = Depends(db_session),
 ) -> UserSchema:
 
     user = await user_crud.get_by_telegram_id(db, telegram_id=telegram_id)

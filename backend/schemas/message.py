@@ -1,13 +1,16 @@
 from pydantic import BaseModel
 from datetime import datetime
 
+
 class MessageCreate(BaseModel):
     user_id: int
     order_id: int | None = None
     content: str
 
+
 class MessageReply(BaseModel):
     reply: str
+
 
 class MessageSchema(BaseModel):
     id: int

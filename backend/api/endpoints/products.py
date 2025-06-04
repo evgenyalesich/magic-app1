@@ -6,13 +6,18 @@ from backend.api.deps import db_session
 
 router = APIRouter()
 
+
 @router.get("/", response_model=list[ProductSchema])
 async def get_products(db: AsyncSession = Depends(db_session)):
     return await product_crud.get_all(db)
 
+
 @router.post("/", response_model=ProductSchema)
-async def create_product(product: ProductCreate, db: AsyncSession = Depends(db_session)):
+async def create_product(
+    product: ProductCreate, db: AsyncSession = Depends(db_session)
+):
     return await product_crud.create(db, product)
+
 
 @router.get("/{product_id}", response_model=ProductSchema)
 async def get_product(product_id: int, db: AsyncSession = Depends(db_session)):

@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 
+
 class ProductBase(BaseModel):
     category_id: int
     title: str
@@ -8,8 +9,10 @@ class ProductBase(BaseModel):
     image_url: str | None = None
     price: float
 
+
 class ProductCreate(ProductBase):
     pass
+
 
 class ProductSchema(ProductBase):
     id: int

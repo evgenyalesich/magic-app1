@@ -1,12 +1,15 @@
 from pydantic import BaseModel
 from datetime import datetime
 
+
 class UserBase(BaseModel):
     telegram_id: int
     username: str | None = None
 
+
 class UserCreate(UserBase):
     pass
+
 
 class UserSchema(UserBase):
     id: int

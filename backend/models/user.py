@@ -3,6 +3,7 @@ from sqlalchemy import BigInteger
 from datetime import datetime
 from backend.models.base import Base
 
+
 class User(Base):
     __tablename__ = "users"
 
