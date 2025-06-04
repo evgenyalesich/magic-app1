@@ -1,0 +1,27 @@
+# ---------- Web framework / ASGI ----------
+fastapi==0.110.0
+uvicorn[standard]==0.30.0          # httptools, websockets, gunicorn-worker
+
+# ---------- Database / ORM ----------
+SQLAlchemy==2.0.29
+asyncpg==0.29.0
+alembic==1.13.1
+
+# ---------- Validation / settings ----------
+pydantic==2.7.1                    # Pydantic v2
+python-dotenv==1.0.1               # load .env
+
+# ---------- Auth / security ----------
+passlib[bcrypt]==1.7.4             # password hashing
+python-jose[cryptography]==3.3.0   # JWT tokens
+
+# ---------- FastAPI helpers ----------
+aiofiles==23.2.1                   # async file I/O
+python-multipart==0.0.9            # form-data uploads
+httpx==0.27.0                      # async HTTP client
+
+# ---------- Bot / Telegram ----------
+aiogram==3.4.1                     # Telegram Bot API (async, FSM встроен)
+
+# ---------- Optional / extras ----------
+ orjson==3.10.3                   # faster JSON (FastAPI supports)

@@ -4,17 +4,31 @@ from typing import Type, TypeVar, Generic
 from pydantic import BaseModel
 from sqlalchemy.sql import func
 
-from backend.models import User, Category, Product, Order, OrderItem, Message
+from backend.models import (
+    User,
+    Category,
+    Product,
+    Order,
+    OrderItem,
+    Message,
+)
 
 ModelType = TypeVar("ModelType")
 SchemaType = TypeVar("SchemaType", bound=BaseModel)
 
 
 class CRUDBase(Generic[ModelType, SchemaType]):
+    """Generic CRUD helper for SQLAlchemy models."""
+
     def __init__(self, model: Type[ModelType]):
         self.model = model
 
-    async def get(self, db: AsyncSession, id: int) -> ModelType:
+    # ------------------------------------------------------------------
+    # Basic CRUD
+    # ------------------------------------------------------------------
+
+    async def get(self, db: AsyncSession, id: int) -> ModelType | None:  # noqa: A002
+        """Возвращает объект по первичному ключу или *None*."""
         return await db.get(self.model, id)
 
     async def get_all(self, db: AsyncSession):
@@ -69,23 +83,50 @@ order_item_crud = CRUDBase(OrderItem)
 message_crud = CRUDBase(Message)
 
 
-class CRUDAdmin:
-    async def get_admin_stats(self, db: AsyncSession):
-        """Получение статистики для админ-панели"""
-        total_users = await db.execute(select(func.count()).select_from(User))
-        total_orders = await db.execute(select(func.count()).select_from(Order))
-        total_revenue = await db.execute(
-            select(func.sum(OrderItem.price)).select_from(OrderItem)
-        )
-        unread_messages = await db.execute(
+async def count_users(db: AsyncSession) -> int:
+    result = await db.execute(select(func.count()).select_from(User))
+    return result.scalar_one()
+
+
+async def count_orders(db: AsyncSession) -> int:
+    result = await db.execute(select(func.count()).select_from(Order))
+    return result.scalar_one()
+
+
+async def calculate_total_revenue(db: AsyncSession) -> float:
+    result = await db.execute(select(func.sum(OrderItem.price)).select_from(OrderItem))
+    return float(result.scalar_one() or 0.0)
+
+
+async def count_unread_messages(db: AsyncSession) -> int:
+    """Поддержка разных схем: is_read или replied_at."""
+    if hasattr(Message, "is_read"):
+        stmt = (
             select(func.count()).select_from(Message).where(Message.is_read.is_(False))
         )
+    else:
+        stmt = (
+            select(func.count())
+            .select_from(Message)
+            .where(Message.replied_at.is_(None))
+        )
+    result = await db.execute(stmt)
+    return result.scalar_one()
+
+
+class CRUDAdmin:
+    async def get_admin_stats(self, db: AsyncSession) -> dict:
+        """Собирает показатели для административной панели."""
+        total_users = await count_users(db)
+        total_orders = await count_orders(db)
+        total_revenue = await calculate_total_revenue(db)
+        unread_messages = await count_unread_messages(db)
 
         return {
-            "total_users": total_users.scalar_one(),
-            "total_orders": total_orders.scalar_one(),
-            "total_revenue": total_revenue.scalar_one() or 0.0,
-            "unread_messages": unread_messages.scalar_one(),
+            "total_users": total_users,
+            "total_orders": total_orders,
+            "total_revenue": total_revenue,
+            "unread_messages": unread_messages,
         }
 
 
