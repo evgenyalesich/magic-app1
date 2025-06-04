@@ -40,7 +40,8 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api")
 
 static_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
-app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+if os.path.isdir(static_dir):
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 
 @app.get("/health")
