@@ -2,12 +2,10 @@ fastapi
 uvicorn[standard]
 sqlalchemy[asyncio]
 asyncpg
-pydantic
+pydantic<2.0.0
 alembic
+python-dotenv
 pytest
 pytest-asyncio
 black
 ruff
-python-dotenv
-httpx<0.28
-aiosqlite

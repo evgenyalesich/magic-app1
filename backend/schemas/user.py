@@ -7,8 +7,12 @@ class UserBase(BaseModel):
     username: str | None = None
 
 
-class UserCreate(UserBase):
-    pass
+class UserCreate(BaseModel):
+    username: str
+    telegram_id: int
+
+    class Config:
+        from_attributes = True
 
 
 class UserSchema(UserBase):

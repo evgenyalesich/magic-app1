@@ -8,12 +8,14 @@ class OrderBase(BaseModel):
     user_id: int
 
 
-class OrderCreate(OrderBase):
-    # ← instead of requiring `items: List[...]`, tests do:
-    # OrderCreate(user_id=…, product_id=…, quantity=…, price=…)
+class OrderCreate(BaseModel):
+    user_id: int
     product_id: int
     quantity: int
     price: float
+
+    class Config:
+        from_attributes = True
 
 
 class OrderUpdate(BaseModel):
