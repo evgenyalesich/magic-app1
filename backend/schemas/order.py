@@ -11,10 +11,12 @@ class OrderItemCreate(BaseModel):
 
 class OrderCreate(BaseModel):
     user_id: int
-    product_id: int  # НАМНОГО ПРОЩЕ: один продукт
+    product_id: int
     quantity: int
     price: float
-    # убираем требование items
+
+    class Config:
+        from_attributes = True
 
     # если всё-таки в бизнес-логике вам нужен список,
     # можно внутри __init__ сконструировать items:

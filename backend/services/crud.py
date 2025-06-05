@@ -12,6 +12,7 @@ from backend.models import (
     OrderItem,
     Message,
 )
+from backend.schemas.order import OrderCreate
 
 ModelType = TypeVar("ModelType")
 SchemaType = TypeVar("SchemaType", bound=BaseModel)
@@ -35,17 +36,25 @@ class CRUDBase(Generic[ModelType, SchemaType]):
         result = await db.execute(select(self.model))
         return result.scalars().all()
 
-    async def create(
-        self, db: AsyncSession, obj_in: SchemaType, extra_fields: dict | None = None
-    ) -> ModelType:
-        obj_data = obj_in.dict(exclude_none=True)
-        if extra_fields:
-            obj_data.update(extra_fields)
-        obj = self.model(**obj_data)
-        db.add(obj)
+    async def create(self, db: AsyncSession, obj_in: OrderCreate) -> Order:
+        # 1) Создаём Order
+        db_order = Order(user_id=obj_in.user_id)
+        db.add(db_order)
+        await db.flush()  # чтобы получить db_order.id
+
+        # 2) Для каждого элемента из obj_in.items создаём OrderItem
+        for item in obj_in.items:
+            db_item = OrderItem(
+                order_id=db_order.id,
+                product_id=item.product_id,
+                quantity=item.quantity,
+                price=item.price,
+            )
+            db.add(db_item)
+
         await db.commit()
-        await db.refresh(obj)
-        return obj
+        await db.refresh(db_order)
+        return db_order
 
     async def update(self, db: AsyncSession, db_obj: ModelType, obj_in: dict):
         for field, value in obj_in.items():
