@@ -9,3 +9,5 @@ pytest-asyncio
 black
 ruff
 python-dotenv
+httpx<0.28
+aiosqlite

@@ -38,7 +38,7 @@ class CRUDBase(Generic[ModelType, SchemaType]):
     async def create(
         self, db: AsyncSession, obj_in: SchemaType, extra_fields: dict | None = None
     ) -> ModelType:
-        obj_data = obj_in.dict()
+        obj_data = obj_in.dict(exclude_none=True)
         if extra_fields:
             obj_data.update(extra_fields)
         obj = self.model(**obj_data)

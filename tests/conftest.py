@@ -7,9 +7,15 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from backend.core.config import DATABASE_URL
 from backend.models.base import Base
+from sqlalchemy.engine.url import make_url
 
-# Убираем "+asyncpg" из URL, чтобы получить чистый синхронный URL
-SYNC_DATABASE_URL = DATABASE_URL.replace("+asyncpg", "")
+
+# Convert async DB URL to a synchronous one (works for asyncpg/aiosqlite)
+_url = make_url(DATABASE_URL)
+if "+" in _url.drivername:
+    dialect, driver = _url.drivername.split("+", 1)
+    _url = _url.set(drivername=dialect)
+SYNC_DATABASE_URL = str(_url)
 
 
 @pytest_asyncio.fixture

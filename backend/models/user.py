@@ -2,6 +2,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import BigInteger
 from datetime import datetime
 from backend.models.base import Base
+from sqlalchemy.orm import relationship
 
 
 class User(Base):
@@ -14,3 +15,8 @@ class User(Base):
     total_orders: Mapped[int] = mapped_column(default=0)
     total_spent: Mapped[float] = mapped_column(default=0.0)
     is_admin: Mapped[bool] = mapped_column(default=False)
+    # Relationships
+    orders = relationship("Order", back_populates="user", cascade="all, delete-orphan")
+    messages = relationship(
+        "Message", back_populates="user", cascade="all, delete-orphan"
+    )
