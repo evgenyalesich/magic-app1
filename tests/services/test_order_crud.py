@@ -1,48 +1,68 @@
+# tests/services/test_order_crud.py
+
 import pytest
-from backend.services import crud
+from backend.services.crud import order_crud, user_crud, product_crud, category_crud
+from backend.schemas.user import UserCreate
 from backend.schemas.category import CategoryCreate
 from backend.schemas.product import ProductCreate
+from backend.schemas.order import OrderCreate
 
 
 @pytest.mark.asyncio
 async def test_order_crud_full_cycle(async_session_fixture):
-    # 1) Создаём категорию и продукт
-    cat = await crud.category_crud.create(
-        async_session_fixture, CategoryCreate(name="CatForOrder")
-    )
-    prod = await crud.product_crud.create(
-        async_session_fixture,
-        ProductCreate(name="OrderProd", price=100.0, category_id=cat.id),
-    )
+    """
+    OrderCreate у вас ожидает:
+      - user_id: int
+      - product_id: int
+      - quantity: int
+      - price: float
 
-    # 2) Создаём заказ (достаточно передать user_id=None, product_id, quantity и price;
-    #    можно положить user_id как 0 или любой другой, если в модели nullable)
-    order_data = {
-        "user_id": None,
-        "product_id": prod.id,
-        "quantity": 2,
-        "price": 100.0,
-    }
-    order = await crud.order_crud.create(async_session_fixture, order_data)
+    Поэтому внутри теста:
+     1) Сначала создаём “User”.
+     2) Затем “Category” → “Product”.
+     3) Наконец, “Order”, ссылаясь на user.id и product.id.
+    """
+
+    # 1) создаём пользователя (telegram_id — целое число)
+    user_in = UserCreate(username="bob", telegram_id=222333)
+    user = await user_crud.create(async_session_fixture, user_in)
+    assert user.id is not None
+
+    # 2) создаём категорию и продукт (нужно из-за внешнего ключа category_id у Product)
+    cat_in = CategoryCreate(name="OrderCategory")
+    category = await category_crud.create(async_session_fixture, cat_in)
+    assert category.id is not None
+
+    prod_in = ProductCreate(title="OrderProduct", price=20.0, category_id=category.id)
+    product = await product_crud.create(async_session_fixture, prod_in)
+    assert product.id is not None
+
+    # 3) создаём заказ через Pydantic OrderCreate
+    order_in = OrderCreate(
+        user_id=user.id, product_id=product.id, quantity=2, price=20.0
+    )
+    order = await order_crud.create(async_session_fixture, order_in)
     assert order.id is not None
-    assert order.product_id == prod.id
+    assert order.user_id == user.id
+    assert order.product_id == product.id
     assert order.quantity == 2
 
-    # 3) Получаем все заказы (get_multi) и проверяем, что созданный заказ в списке
-    orders = await crud.order_crud.get_multi(async_session_fixture)
-    assert any(o.id == order.id for o in orders)
+    # 4) проверяем, что get_multi() вернёт наш заказ
+    all_orders = await order_crud.get_multi(async_session_fixture)
+    assert any(o.id == order.id for o in all_orders)
 
-    # 4) Обновляем количество
-    fetched = await crud.order_crud.get(async_session_fixture, order.id)
-    updated = await crud.order_crud.update(
-        async_session_fixture, fetched, {"quantity": 3}
-    )
+    # 5) получаем заказ по его ID и проверяем поля
+    fetched = await order_crud.get(async_session_fixture, order.id)
+    assert fetched is not None
+    assert fetched.quantity == 2
+
+    # 6) обновляем какое-либо поле (например, quantity)
+    updated = await order_crud.update(async_session_fixture, fetched, {"quantity": 3})
     assert updated.quantity == 3
 
-    # 5) Удаляем заказ
-    removed = await crud.order_crud.remove(async_session_fixture, updated)
+    # 7) удаляем заказ
+    removed = await order_crud.remove(async_session_fixture, updated)
     assert removed.id == order.id
 
-    # 6) Убедимся, что get возвращает None
-    no_order = await crud.order_crud.get(async_session_fixture, order.id)
-    assert no_order is None
+    # 8) get(id) после удаления снова вернёт None
+    assert await order_crud.get(async_session_fixture, order.id) is None

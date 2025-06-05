@@ -1,34 +1,44 @@
+# tests/services/test_user_crud.py
+
 import pytest
-from backend.services import crud
+from backend.services.crud import user_crud
 from backend.schemas.user import UserCreate
 
 
 @pytest.mark.asyncio
 async def test_user_crud_create_get_update_remove(async_session_fixture):
-    #  Создаём пользователя
-    data = UserCreate(username="testuser", telegram_id="tg_123")
-    user = await crud.user_crud.create(async_session_fixture, data)
+    """
+    UserCreate у вас ожидает:
+      - telegram_id: int
+      - username: str
+    Поэтому передаём telegram_id как целое, а не как строку.
+    """
+
+    # 1) Создаём пользователя
+    user_in = UserCreate(username="alice", telegram_id=123456)
+    user = await user_crud.create(async_session_fixture, user_in)
     assert user.id is not None
-    assert user.username == "testuser"
-    assert user.telegram_id == "tg_123"
+    assert user.username == "alice"
+    assert user.telegram_id == 123456
 
-    # Получаем ID
-    fetched = await crud.user_crud.get(async_session_fixture, user.id)
+    # 2) Получаем пользователя по его ID
+    fetched = await user_crud.get(async_session_fixture, user.id)
     assert fetched is not None
-    assert fetched.username == "testuser"
-    assert fetched.telegram_id == "tg_123"
+    assert fetched.username == "alice"
+    assert fetched.telegram_id == 123456
 
-    #  Обновляем username
-    updated = await crud.user_crud.update(
-        async_session_fixture, fetched, {"username": "new_name"}
+    # 3) Обновляем username (оставляем telegram_id без изменений)
+    updated = await user_crud.update(
+        async_session_fixture, fetched, {"username": "alice_new"}
     )
-    assert updated.username == "new_name"
-    assert updated.telegram_id == "tg_123"
+    assert updated.id == user.id
+    assert updated.username == "alice_new"
+    assert updated.telegram_id == 123456
 
-    #  Удаляем пользователя
-    removed = await crud.user_crud.remove(async_session_fixture, updated)
+    # 4) Удаляем пользователя
+    removed = await user_crud.remove(async_session_fixture, updated)
     assert removed.id == user.id
 
-    # Повторный get для удалённого пользователя  None
-    no_user = await crud.user_crud.get(async_session_fixture, user.id)
-    assert no_user is None
+    # 5) Теперь get(id) должен вернуть None, потому что мы его удалили
+    none_user = await user_crud.get(async_session_fixture, user.id)
+    assert none_user is None

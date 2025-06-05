@@ -1,23 +1,34 @@
-from pydantic import BaseModel
+# backend/schemas/order.py
+
 from datetime import datetime
+from pydantic import BaseModel
 
 
-class OrderItemCreate(BaseModel):
+class OrderBase(BaseModel):
+    user_id: int
+
+
+class OrderCreate(OrderBase):
+    # ← instead of requiring `items: List[...]`, tests do:
+    # OrderCreate(user_id=…, product_id=…, quantity=…, price=…)
     product_id: int
     quantity: int
+    price: float
 
 
-class OrderCreate(BaseModel):
-    user_id: int
-    items: list[OrderItemCreate]
+class OrderUpdate(BaseModel):
+    quantity: int
+    price: float
 
 
-class OrderSchema(BaseModel):
+class OrderInDBBase(BaseModel):
     id: int
     user_id: int
-    total_price: float
-    status: str
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
+
+
+class Order(OrderInDBBase):
+    pass
