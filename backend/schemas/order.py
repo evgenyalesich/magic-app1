@@ -1,36 +1,30 @@
 # backend/schemas/order.py
 
-from datetime import datetime
 from pydantic import BaseModel
 
 
-class OrderBase(BaseModel):
-    user_id: int
-
-
-class OrderCreate(BaseModel):
-    user_id: int
+class OrderItemCreate(BaseModel):
     product_id: int
     quantity: int
     price: float
 
-    class Config:
-        from_attributes = True
 
-
-class OrderUpdate(BaseModel):
+class OrderCreate(BaseModel):
+    user_id: int
+    product_id: int  # НАМНОГО ПРОЩЕ: один продукт
     quantity: int
     price: float
+    # убираем требование items
 
-
-class OrderInDBBase(BaseModel):
-    id: int
-    user_id: int
-    created_at: datetime
-
-    class Config:
-        orm_mode = True
-
-
-class Order(OrderInDBBase):
-    pass
+    # если всё-таки в бизнес-логике вам нужен список,
+    # можно внутри __init__ сконструировать items:
+    def model_dump(self, *args, **kwargs):
+        data = super().model_dump(*args, **kwargs)
+        data["items"] = [
+            {
+                "product_id": data.pop("product_id"),
+                "quantity": data.pop("quantity"),
+                "price": data.pop("price"),
+            }
+        ]
+        return data

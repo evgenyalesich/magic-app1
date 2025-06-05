@@ -7,33 +7,28 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from backend.core.config import DATABASE_URL
 from backend.models.base import Base
-from sqlalchemy.engine.url import make_url
 
 
-# Convert async DB URL to a synchronous one (works for asyncpg/aiosqlite)
-_url = make_url(DATABASE_URL)
-if "+" in _url.drivername:
-    dialect, driver = _url.drivername.split("+", 1)
-    _url = _url.set(drivername=dialect)
-SYNC_DATABASE_URL = str(_url)
+# Убираем "+asyncpg", чтобы создать синхронный движок
+SYNC_DATABASE_URL = DATABASE_URL.replace("+asyncpg", "")
 
 
 @pytest_asyncio.fixture
 async def async_session_fixture():
-    # 1) Синхронно создаём таблицы через обычный (синхронный) движок
+    # 1) Синхронно создаём таблицы в базе, на которую указывает SYNC_DATABASE_URL
     sync_engine = create_engine(SYNC_DATABASE_URL, echo=False)
     Base.metadata.create_all(sync_engine)
 
-    # 2) Заводим для этого теста свой собственный AsyncEngine
+    # 2) Заводим асинхронный движок
     async_engine = create_async_engine(DATABASE_URL, echo=False)
     AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
 
-    # 3) Открываем асинхронную сессию и передаём её в тест
+    # 3) Открываем асинхронную сессию
     async with AsyncSessionLocal() as session:
         yield session
 
-    # 4) После теста: сначала закрываем асинхронный движок (он сам «отпустит» соединения)
+    # 4) После теста закрываем асинхронный движок
     await async_engine.dispose()
 
-    # 5) И только затем дропаем все таблицы через синхронный движок
+    # 5) Дропаем все таблицы (опционально)
     Base.metadata.drop_all(sync_engine)
