@@ -6,7 +6,10 @@ from backend.models.order import Order
 from backend.models.message import Message
 from backend.schemas.message import MessageCreate, MessageSchema
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/messages",  # ← убираем лишнее /api
+    tags=["messages"],
+)
 
 
 @router.post("/", response_model=MessageSchema)
