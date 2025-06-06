@@ -9,6 +9,6 @@ api_router = APIRouter()
 
 api_router.include_router(auth_router, prefix="/auth", tags=["Auth"])
 api_router.include_router(products_router, prefix="/products", tags=["Products"])
-api_router.include_router(orders_router, prefix="/orders", tags=["Orders"])
+api_router.include_router(orders_router)  # prefix здесь больше не нужен
 api_router.include_router(messages_router, prefix="/messages", tags=["Messages"])
 api_router.include_router(admin_router)  # префикс /admin уже внутри router

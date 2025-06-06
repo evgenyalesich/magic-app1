@@ -1,32 +1,34 @@
-# backend/schemas/order.py
+from decimal import Decimal
+from pydantic import BaseModel, ConfigDict
+from datetime import datetime
 
-from pydantic import BaseModel
 
-
-class OrderItemCreate(BaseModel):
+# ---------------------------------------------------------------------
+# Базовые поля, которые повторяются в разных схемах
+# ---------------------------------------------------------------------
+class OrderBase(BaseModel):
     product_id: int
     quantity: int
     price: float
 
 
-class OrderCreate(BaseModel):
+# ---------------------------------------------------------------------
+# Входящая при создании (POST /orders/)
+# ---------------------------------------------------------------------
+class OrderCreate(OrderBase):
+    user_id: int  # приходит от Telegram-Web-App
+
+
+# ---------------------------------------------------------------------
+# Ответ API (GET /orders/, POST /orders/, …)
+# ---------------------------------------------------------------------
+class OrderRead(BaseModel):
+    id: int
     user_id: int
     product_id: int
     quantity: int
-    price: float
+    price: Decimal
+    total: Decimal
+    created_at: datetime
 
-    class Config:
-        from_attributes = True
-
-    # если всё-таки в бизнес-логике вам нужен список,
-    # можно внутри __init__ сконструировать items:
-    def model_dump(self, *args, **kwargs):
-        data = super().model_dump(*args, **kwargs)
-        data["items"] = [
-            {
-                "product_id": data.pop("product_id"),
-                "quantity": data.pop("quantity"),
-                "price": data.pop("price"),
-            }
-        ]
-        return data
+    model_config = ConfigDict(from_attributes=True)
