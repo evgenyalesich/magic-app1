@@ -1,8 +1,6 @@
 # backend/api/endpoints/auth.py
-
 import logging
 from typing import Dict, Any
-
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,7 +21,7 @@ ADMIN_TELEGRAM_ID = settings.ADMIN_TELEGRAM_ID
 async def login(
     request: Request,
     response: Response,
-    payload: Dict[str, Any],  # ожидаем JSON с Telegram‐параметрами
+    payload: Dict[str, Any],
     db: AsyncSession = Depends(db_session),
 ):
     """
@@ -70,6 +68,7 @@ async def login(
             obj_in=user_in,
             extra_fields={"is_admin": is_admin_flag},
         )
+
         logger.info("✅ Новый пользователь зарегистрирован: %s", user_obj.username)
     else:
         user_obj = existing_user

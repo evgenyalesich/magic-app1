@@ -3,18 +3,17 @@ from dotenv import load_dotenv
 from pydantic import BaseSettings
 from typing import List
 
-
 load_dotenv()
 
 DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql+asyncpg://postgres:6628@localhost:5433/test_pass"
+    "DATABASE_URL", "postgresql+asyncpg://postgres:6628@localhost:5433/darina_db"
 )
 
 
 class Settings(BaseSettings):
     DATABASE_URL: str
 
-    # Вот наш Telegram-бот-токен (суть: нужен, чтобы проверить хэш из WebApp auth)
+    # Вот наш Telegram-бот-токен (нужен, чтобы проверить хэш из WebApp auth)
     TELEGRAM_BOT_TOKEN: str
 
     # Список Telegram-ID, которые считаются админами

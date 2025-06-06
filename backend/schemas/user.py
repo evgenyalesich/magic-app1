@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from datetime import datetime
 
 
 class UserBase(BaseModel):
@@ -15,11 +14,10 @@ class UserCreate(BaseModel):
         from_attributes = True
 
 
-class UserSchema(UserBase):
+class UserSchema(BaseModel):
     id: int
-    first_seen: datetime
-    total_orders: int
-    total_spent: float
+    telegram_id: int
+    username: str
     is_admin: bool  # <-- Добавляем обязательное поле!
 
     class Config:

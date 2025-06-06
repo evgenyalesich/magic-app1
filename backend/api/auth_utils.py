@@ -24,7 +24,7 @@ def verify_telegram_auth(data: dict) -> bool:
         return False
 
     # Секретный ключ – sha256 от BOT_TOKEN
-    secret_key = hashlib.sha256(settings.BOT_TOKEN.encode()).digest()
+    secret_key = hashlib.sha256(settings.TELEGRAM_BOT_TOKEN.encode()).digest()
 
     # Соберём все поля кроме hash
     check_list = []
