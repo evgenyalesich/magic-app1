@@ -6,7 +6,7 @@ from typing import Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import db_session
+from backend.api.deps import get_db
 from backend.services.crud import user_crud
 from backend.schemas.user import UserCreate, UserSchema
 from backend.core.config import settings
@@ -24,7 +24,7 @@ async def login(
     request: Request,
     response: Response,
     payload: Dict[str, Any],  # ожидаем JSON с Telegram‐параметрами
-    db: AsyncSession = Depends(db_session),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Эндпоинт для «логина через Telegram-WebApp». Принимает JSON, который присылает
@@ -90,7 +90,7 @@ async def login(
 
 
 @router.get("/user/{telegram_id}", response_model=UserSchema)
-async def get_user(telegram_id: int, db: AsyncSession = Depends(db_session)):
+async def get_user(telegram_id: int, db: AsyncSession = Depends(get_db)):
     logger.info("📌 Запрос профиля пользователя с ID=%s", telegram_id)
     user = await user_crud.get_by_telegram_id(db, telegram_id=telegram_id)
     if not user:
@@ -101,7 +101,7 @@ async def get_user(telegram_id: int, db: AsyncSession = Depends(db_session)):
 
 async def get_current_user(
     tg_id_cookie: str = Request.cookies.fget,  # автоматически FastAPI найдёт cookie tg_id
-    db: AsyncSession = Depends(db_session),
+    db: AsyncSession = Depends(get_db),
 ) -> UserSchema:
     """
     Зависимость, возвращающая текущего пользователя:

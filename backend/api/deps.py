@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
     """
     Депенденси для получения сессии с БД.
-    Пробрасывает AsyncSession из core/database.get_db().
+    Передаёт наружу AsyncSession, взятый из core/database.get_db().
     """
     async for session in _get_db():
         yield session
@@ -24,14 +24,15 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(db_session),
-) -> "User":
+) -> User:
     """
-    Депенденси для получения текущего пользователя по куке 'tg_id'.
-    Подавать его в эндпоинты как Depends(get_current_user).
+    Депенденси, возвращающая текущего пользователя по cookie 'tg_id'.
     """
+
     tg_id_cookie = request.cookies.get("tg_id")
     if not tg_id_cookie:
         raise HTTPException(status_code=401, detail="Не авторизован")
+
     try:
         tg_id_val = int(tg_id_cookie)
     except ValueError:
@@ -40,16 +41,19 @@ async def get_current_user(
     user = await user_crud.get_by_telegram_id(db, telegram_id=tg_id_val)
     if not user:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
+
     return user
 
 
 async def admin_guard(
-    user=Depends(get_current_user),
-) -> "User":
+    user: User = Depends(get_current_user),
+) -> User:
     """
-    Депенденси, который проверяет, что текущий пользователь — админ.
-    Если нет, вернёт HTTPException(403).
+    Депенденси, проверяющий, что текущий пользователь — админ.
+    Если не админ, возвращает HTTPException(403).
     """
+
     if not user.is_admin:
         raise HTTPException(status_code=403, detail="Доступ запрещён")
+
     return user

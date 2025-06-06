@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
+from backend.api.deps import get_db
 from backend.services.crud import user_crud, order_crud, message_crud
 from backend.schemas.admin import AdminStats
 from backend.api.endpoints.auth import get_current_user
@@ -18,7 +18,7 @@ async def admin_home(user=Depends(get_current_user)):
 
 @router.get("/dashboard", response_model=AdminStats)
 async def get_admin_dashboard(
-    db: AsyncSession = Depends(), user=Depends(get_current_user)
+    db: AsyncSession = Depends(get_db), user=Depends(get_current_user)
 ):
     if not user.is_admin:
         raise HTTPException(status_code=403, detail="Доступ запрещён")
