@@ -15,10 +15,10 @@ class Settings(BaseSettings):
     DATABASE_URL: str
 
     # Вот наш Telegram-бот-токен (суть: нужен, чтобы проверить хэш из WebApp auth)
-    BOT_TOKEN: str
+    TELEGRAM_BOT_TOKEN: str
 
     # Список Telegram-ID, которые считаются админами
-    ADMIN_TELEGRAM_ID: List[int] = []
+    ADMIN_TELEGRAM_ID: List[int]
 
     class Config:
         env_file = ".env"

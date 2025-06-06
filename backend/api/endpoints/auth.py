@@ -6,7 +6,7 @@ from typing import Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import get_current_user
+from backend.api.deps import db_session
 from backend.services.crud import user_crud
 from backend.schemas.user import UserCreate, UserSchema
 from backend.core.config import settings
@@ -16,7 +16,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Берём из настроек полный список админ‐ID
-ADMIN_TELEGRAM_IDS = settings.ADMIN_TG_IDS
+ADMIN_TELEGRAM_ID = settings.ADMIN_TELEGRAM_ID
 
 
 @router.post("/login", response_model=UserSchema)
@@ -24,7 +24,7 @@ async def login(
     request: Request,
     response: Response,
     payload: Dict[str, Any],  # ожидаем JSON с Telegram‐параметрами
-    db: AsyncSession = Depends(get_current_user),
+    db: AsyncSession = Depends(db_session),
 ):
     """
     Эндпоинт для «логина через Telegram-WebApp». Принимает JSON, который присылает
@@ -63,7 +63,7 @@ async def login(
     # 4) Ищем в БД; если не нашли — создаём. Помечаем is_admin, если telegram_id в ADMIN_TELEGRAM_IDS
     existing_user = await user_crud.get_by_telegram_id(db, telegram_id=tg_id)
     if not existing_user:
-        is_admin_flag = tg_id in ADMIN_TELEGRAM_IDS
+        is_admin_flag = tg_id in ADMIN_TELEGRAM_ID
         # Передаём в create() Pydantic-модель и доп.поле is_admin
         user_obj = await user_crud.create(
             db,
@@ -90,7 +90,7 @@ async def login(
 
 
 @router.get("/user/{telegram_id}", response_model=UserSchema)
-async def get_user(telegram_id: int, db: AsyncSession = Depends(get_current_user)):
+async def get_user(telegram_id: int, db: AsyncSession = Depends(db_session)):
     logger.info("📌 Запрос профиля пользователя с ID=%s", telegram_id)
     user = await user_crud.get_by_telegram_id(db, telegram_id=telegram_id)
     if not user:
@@ -100,8 +100,8 @@ async def get_user(telegram_id: int, db: AsyncSession = Depends(get_current_user
 
 
 async def get_current_user(
-    tg_id_cookie: str = Request.cookies.get,  # автоматически FastAPI найдёт cookie tg_id
-    db: AsyncSession = Depends(get_current_user),
+    tg_id_cookie: str = Request.cookies.fget,  # автоматически FastAPI найдёт cookie tg_id
+    db: AsyncSession = Depends(db_session),
 ) -> UserSchema:
     """
     Зависимость, возвращающая текущего пользователя:
