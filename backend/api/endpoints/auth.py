@@ -14,7 +14,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Берём из настроек полный список админ‐ID
-ADMIN_TELEGRAM_ID = settings.ADMIN_TELEGRAM_ID
+ADMIN_TELEGRAM_IDS = settings.ADMIN_TG_IDS
 
 
 @router.post("/login", response_model=UserSchema)
@@ -61,7 +61,7 @@ async def login(
     # 4) Ищем в БД; если не нашли — создаём. Помечаем is_admin, если telegram_id в ADMIN_TELEGRAM_IDS
     existing_user = await user_crud.get_by_telegram_id(db, telegram_id=tg_id)
     if not existing_user:
-        is_admin_flag = tg_id in ADMIN_TELEGRAM_ID
+        is_admin_flag = tg_id in ADMIN_TELEGRAM_IDS
         # Передаём в create() Pydantic-модель и доп.поле is_admin
         user_obj = await user_crud.create(
             db,

@@ -11,13 +11,9 @@ DATABASE_URL = os.getenv(
 
 
 class Settings(BaseSettings):
+    BOT_TOKEN: str  # вместо TELEGRAM_BOT_TOKEN
+    ADMIN_TG_IDS: List[int]  # вместо ADMIN_TELEGRAM_ID
     DATABASE_URL: str
-
-    # Вот наш Telegram-бот-токен (нужен, чтобы проверить хэш из WebApp auth)
-    TELEGRAM_BOT_TOKEN: str
-
-    # Список Telegram-ID, которые считаются админами
-    ADMIN_TELEGRAM_ID: List[int]
 
     class Config:
         env_file = ".env"
