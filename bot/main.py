@@ -25,7 +25,7 @@ async def start_handler(message: types.Message):
 
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            "https://jacket-days-easter-bald.trycloudflare.com/api/auth/login",
+            "https://full-resist-florist-faculty.trycloudflare.com/api/auth/login",
             json={"telegram_id": telegram_id, "username": username},
         )
 
@@ -39,7 +39,7 @@ async def start_handler(message: types.Message):
     keyboard = InlineKeyboardBuilder()
     keyboard.button(
         text="🔮 Войти в волшебный мир",
-        web_app=WebAppInfo(url="https://jacket-days-easter-bald.trycloudflare.com"),
+        web_app=WebAppInfo(url="https://full-resist-florist-faculty.trycloudflare.com"),
     )
 
     await message.answer(

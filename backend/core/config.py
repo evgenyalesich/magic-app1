@@ -1,19 +1,17 @@
-import os
 from dotenv import load_dotenv
-from pydantic import BaseSettings
 from typing import List
 
-load_dotenv()
+from pydantic import Field  # <— вот это
+from pydantic_settings import BaseSettings
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql+asyncpg://postgres:6628@localhost:5433/darina_db"
-)
+# Загружаем .env
+load_dotenv()
 
 
 class Settings(BaseSettings):
-    BOT_TOKEN: str  # вместо TELEGRAM_BOT_TOKEN
-    ADMIN_TG_IDS: List[int]  # вместо ADMIN_TELEGRAM_ID
-    DATABASE_URL: str
+    TELEGRAM_BOT_TOKEN: str
+    ADMIN_TELEGRAM_IDS: List[int] = Field(default_factory=list)
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:6628@localhost:5433/darina_db"
 
     class Config:
         env_file = ".env"

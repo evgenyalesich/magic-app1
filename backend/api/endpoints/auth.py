@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/auth")
 logger = logging.getLogger(__name__)
 
 # полный список админ‐ID из конфига
-ADMIN_TELEGRAM_IDS = settings.ADMIN_TG_IDS
+ADMIN_TELEGRAM_IDS = settings.ADMIN_TELEGRAM_IDS
 
 
 @router.post("/login", response_model=UserSchema)

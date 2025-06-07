@@ -1,32 +1,27 @@
-// src/components/ProductCard.jsx
+// File: frontend/src/components/ProductCard.jsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createOrder } from '../api/orders';
 
 export default function ProductCard({ product }) {
-  const nav = useNavigate();
-
-  const handleBuy = async () => {
-    try {
-      const order = await createOrder(product.id);
-      nav(`/order/${order.id}`);
-    } catch (e) {
-      alert(e.message);
-    }
-  };
+  const navigate = useNavigate();
 
   return (
-    <div className="border rounded p-4 shadow-sm">
-      <img src={product.image_url} alt={product.name} className="w-full h-48 object-cover mb-2" />
-      <h2 className="text-xl font-semibold mb-1">{product.name}</h2>
-      <p className="text-gray-600 mb-2">{product.description}</p>
-      <p className="font-bold mb-4">{product.price} ₽</p>
-      <button
-        onClick={handleBuy}
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-      >
-        Купить
-      </button>
+    <div
+      className="border rounded-lg overflow-hidden shadow hover:shadow-lg transition cursor-pointer bg-white dark:bg-gray-800"
+      onClick={() => navigate(`/product/${product.id}`)}
+    >
+      <img
+        src={product.imageUrl}
+        alt={product.name}
+        className="w-full h-48 object-cover"
+      />
+      <div className="p-4">
+        <h2 className="text-lg font-semibold mb-2">{product.name}</h2>
+        <p className="font-bold mb-2">{product.price} ₽</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          {product.shortDescription}
+        </p>
+      </div>
     </div>
   );
 }
