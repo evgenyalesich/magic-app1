@@ -1,10 +1,10 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import './index.css'; // обязательно подключи CSS Tailwind здесь!
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
+import './index.css'    // <-- вот это
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>,
-);
+  </React.StrictMode>
+)

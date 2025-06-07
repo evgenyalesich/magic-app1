@@ -1,29 +1,19 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import Home from './pages/Home';
-import Services from './pages/Services';
-import Profile from './pages/Profile';
-import Admin from './pages/Admin';
-import Messages from './pages/Messages';
-import NotFound from './pages/NotFound';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import LoginPage from './pages/LoginPage';
+import CatalogPage from './pages/CatalogPage';
+import OrderConfirmation from './pages/OrderConfirmation';
+import ChatPage from './pages/ChatPage';
 
 function App() {
   return (
     <Router>
-      <Header />
-      <main className="min-h-screen">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </main>
-      <Footer />
+      <Routes>
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/catalog" element={<CatalogPage />} />
+        <Route path="/order/:orderId" element={<OrderConfirmation />} />
+        <Route path="/chat/:orderId" element={<ChatPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </Router>
   );
 }
