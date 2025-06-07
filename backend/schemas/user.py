@@ -18,7 +18,8 @@ class UserSchema(BaseModel):
     id: int
     telegram_id: int
     username: str
-    is_admin: bool  # <-- Добавляем обязательное поле!
+    is_admin: bool
 
     class Config:
+        orm_mode = True
         from_attributes = True

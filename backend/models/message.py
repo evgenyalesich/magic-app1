@@ -12,6 +12,7 @@ class Message(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     content = Column(String, nullable=False)
     is_read = Column(Boolean, default=False, nullable=False)  # <-- вот эта строка
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=True)
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

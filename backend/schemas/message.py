@@ -1,11 +1,14 @@
-from pydantic import BaseModel
 from datetime import datetime
+from pydantic import BaseModel
 
 
 class MessageCreate(BaseModel):
     user_id: int
-    order_id: int | None = None
     content: str
+    is_read: bool
+
+    class Config:
+        orm_mode = True
 
 
 class MessageReply(BaseModel):
@@ -22,4 +25,4 @@ class MessageSchema(BaseModel):
     replied_at: datetime | None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
