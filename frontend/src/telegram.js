@@ -1,28 +1,38 @@
 // File: frontend/src/telegram.js
 
+// Базовый URL вашего бэкенда
+const API_BASE = process.env.REACT_APP_API_BASE || '';
+
 /**
- * Инициализирует Telegram Web App, расширяет окно и
- * верифицирует initData на сервере, получая профиль пользователя.
+ * Инициализирует Telegram Web App, расширяет окно на весь экран,
+ * верифицирует initData на сервере и возвращает профиль пользователя.
  */
 export async function initTelegram() {
-  const tg = window.Telegram.WebApp;
+  const tg = window.Telegram?.WebApp;
+  if (!tg) {
+    throw new Error('Запущено не из Telegram WebApp');
+  }
 
-  // Разворачиваем Web App на весь экран
+  tg.ready();
   tg.expand();
 
-  // Проверяем, что API доступен
-  if (!tg.initData) {
-    throw new Error('Telegram WebApp не инициализирован');
+  // Telegram кладёт все данные при запусе веб-приложения
+  const payload = tg.initDataUnsafe;
+  if (!payload || !payload.hash) {
+    throw new Error('Нет initData или hash от Telegram');
   }
 
-  // Отправляем initData на сервер для верификации и получения пользователя
-  const res = await fetch('/api/verify_initdata', {
+  const res = await fetch(`${API_BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ initData: tg.initData }),
+    credentials: 'include',         // обязательно, чтобы сохранить куки
+    body: JSON.stringify(payload), // передаём весь объект с hash/auth_date/…
   });
+
   if (!res.ok) {
-    throw new Error('Не удалось верифицировать initData');
+    const text = await res.text();
+    throw new Error(`Login failed: ${res.status} ${text}`);
   }
-  return res.json(); // { telegram_id, name, username, … }
+
+  return res.json(); // { telegram_id, username, … }
 }
