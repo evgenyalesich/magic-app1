@@ -1,46 +1,51 @@
-// frontend/src/App.jsx
-import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import ProductList from "./components/ProductList";
-import ProductDetail from "./components/ProductDetail";
-import ChatWindow from "./components/ChatWindow";
-import { initTelegram, fetchCurrentUser } from "./telegram";
-import "./App.css";
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import ProductList from './components/ProductList';
+import ProductDetail from './components/ProductDetail';
+import ChatWindow from './components/ChatWindow';
+import { initTelegram, fetchCurrentUser } from './telegram';
+import './App.css';
 
 const queryClient = new QueryClient();
 
-function App() {
+export default function App() {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const tg = window.Telegram?.WebApp;
-    if (tg) {
-      // внутри WebApp — логинимся через Telegram
-      initTelegram()
-        .catch(err => {
-          console.error("Ошибка логина:", err);
-        })
-        .then(() => fetchCurrentUser())
-        .then(profile => {
-          if (profile) setUser(profile);
-          else console.warn("Login succeeded but /me вернул null");
-        });
-      // тема
-      const theme = tg.colorScheme;
-      document.documentElement.classList.toggle("dark", theme === "dark");
-    } else {
-      // прямой заход — просто пробуем по кукам
-      fetchCurrentUser().then(profile => {
-        if (profile) setUser(profile);
-      });
-    }
+    (async () => {
+      try {
+        if (window.Telegram?.WebApp) {
+          // Заходим через WebApp
+          const profile = await initTelegram();
+          setUser(profile);
+        } else {
+          // Обычный режим (браузер)
+          const profile = await fetchCurrentUser();
+          setUser(profile);
+        }
+      } catch (err) {
+        console.error('Ошибка авторизации:', err);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        Загрузка...
+      </div>
+    );
+  }
 
   if (!user) {
     return (
       <div className="flex items-center justify-center h-screen">
-        Загрузка…
+        Пользователь не авторизован
       </div>
     );
   }
@@ -59,5 +64,3 @@ function App() {
     </QueryClientProvider>
   );
 }
-
-export default App;
