@@ -1,13 +1,16 @@
 import os
 import logging
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 from backend.api.api import api_router
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler()],
 )
 logger = logging.getLogger("backend")
 
@@ -16,15 +19,17 @@ app = FastAPI(title="Magic App Backend")
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    logger.info(f"Запрос: {request.method} {request.url}")
-    response = await call_next(request)
-    logger.info(
-        f"Ответ:  {request.method} {request.url} – статус {response.status_code}"
-    )
+    logger.info(f"Запрос: {request.method} {request.url.path}")
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        logger.error(f"Ошибка обработки запроса {request.url.path}: {exc}")
+        raise
+    logger.info(f"Ответ: {request.method} {request.url.path} → {response.status_code}")
     return response
 
 
-# 1) CORS для вашего WebApp
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,25 +38,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 2) Подключаем API на /api/*
+# Все эндпойнты под /api
 app.include_router(api_router, prefix="/api")
 
-
-# 3) Статика:
+# Если собран фронтенд
 static_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
 if os.path.isdir(static_dir):
-    # 3.1) ассеты JS/CSS под /static/*
-    app.mount(
-        "/static",
-        StaticFiles(directory=os.path.join(static_dir, "assets")),
-        name="static-assets",
-    )
+    # 1) Статика на /static
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-    # 3.2) все остальные GET (кроме /api/*) — отдадим index.html
+    # 2) SPA-fallback: любой GET, не /api и не /static → index.html
     @app.get("/{full_path:path}", include_in_schema=False)
-    async def spa_fallback(full_path: str):
-        from fastapi.responses import FileResponse
-
+    async def spa_fallback(request: Request, full_path: str):
+        if request.method != "GET" or request.url.path.startswith(("/api", "/static")):
+            raise HTTPException(404)
         return FileResponse(os.path.join(static_dir, "index.html"))
 
 
