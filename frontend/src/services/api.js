@@ -1,40 +1,43 @@
-// frontend/src/services/api.js
-const API_BASE = 'https://full-resist-florist-faculty.trycloudflare.com'
+// Базовый URL вашего бэкенда (замените на свой домен)
+const API_BASE_URL = 'https://full-resist-florist-faculty.trycloudflare.com';
 
-export async function fetchProducts() {
-  const res = await fetch(`${API_BASE}/api/products`)
-  if (!res.ok) throw new Error('Не удалось загрузить список товаров')
-  return res.json()
-}
-
-export async function fetchProduct(id) {
-  const res = await fetch(`${API_BASE}/api/products/${id}`)
-  if (!res.ok) throw new Error('Не удалось загрузить товар')
-  return res.json()
-}
-
-export async function createOrder(productId) {
-  const res = await fetch(`${API_BASE}/api/orders`, {
-    method: 'POST',
+// Утилита для запросов к API с обработкой ошибок и cookie
+async function request(path, options = {}) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: 'include',           // передаём cookie для авторизации
     headers: { 'Content-Type': 'application/json' },
+    ...options,
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`API error ${res.status}: ${errorText}`);
+  }
+  return res.json();
+}
+
+// Службы API
+export function fetchProducts() {
+  return request('/api/products');
+}
+
+export function fetchProduct(id) {
+  return request(`/api/products/${id}`);
+}
+
+export function createOrder(productId) {
+  return request('/api/orders', {
+    method: 'POST',
     body: JSON.stringify({ productId }),
-  })
-  if (!res.ok) throw new Error('Не удалось создать заказ')
-  return res.json()
+  });
 }
 
-export async function fetchChatHistory(sessionId) {
-  const res = await fetch(`${API_BASE}/api/chat/${sessionId}/history`)
-  if (!res.ok) throw new Error('Не удалось загрузить историю чата')
-  return res.json()
+export function fetchChatHistory(sessionId) {
+  return request(`/api/chat/${sessionId}/history`);
 }
 
-export async function sendMessage(sessionId, message) {
-  const res = await fetch(`${API_BASE}/api/chat/${sessionId}/message`, {
+export function sendMessage(sessionId, message) {
+  return request(`/api/chat/${sessionId}/message`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(message),
-  })
-  if (!res.ok) throw new Error('Не удалось отправить сообщение')
-  return res.json()
+  });
 }

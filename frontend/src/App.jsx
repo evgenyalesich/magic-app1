@@ -7,9 +7,10 @@ import ProductDetail from './components/ProductDetail';
 import ChatWindow from './components/ChatWindow';
 import './App.css';
 
-const API_BASE = 'https://bargains-rt-somebody-catch.trycloudflare.com';
-const queryClient = new QueryClient();
-
+fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' })
+   .then(res => res.json())
+    .then(setUser)
+  .catch(() => {});
 function App() {
   const [user, setUser] = useState(null);
 

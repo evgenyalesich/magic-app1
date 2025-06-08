@@ -1,6 +1,3 @@
-# File: backend/api/api.py
-# Основной маршрутизатор API
-
 from fastapi import APIRouter
 from .endpoints.auth import router as auth_router
 from .endpoints.products import router as products_router
