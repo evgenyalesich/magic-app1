@@ -1,3 +1,4 @@
+# Маршруты для авторизации через Telegram
 import logging
 from typing import Dict, Any
 
@@ -10,10 +11,11 @@ from backend.schemas.user import UserCreate, UserSchema
 from backend.core.config import settings
 from backend.api.auth_utils import verify_telegram_auth, is_payload_fresh
 
-router = APIRouter(prefix="/api/auth")
 logger = logging.getLogger(__name__)
 
-# полный список админ‐ID из конфига
+router = APIRouter()
+
+# Админские ID из настроек
 ADMIN_TELEGRAM_IDS = settings.ADMIN_TELEGRAM_IDS
 
 
@@ -25,17 +27,17 @@ async def login(
 ):
     logger.info("🔑 Попытка логина через Telegram-payload: %s", payload)
 
-    # 1) проверяем hash
+    # Проверка hash
     if not verify_telegram_auth(payload):
         logger.warning("❌ Неверный hash от Telegram: %s", payload.get("hash"))
         raise HTTPException(400, "Invalid Telegram hash")
 
-    # 2) проверяем свежесть
+    # Проверка свежести
     if not is_payload_fresh(payload, window=300):
         logger.warning("❌ Устаревший auth_date: %s", payload.get("auth_date"))
         raise HTTPException(400, "Expired Telegram login")
 
-    # 3) вынимаем id/username
+    # Извлечение данных
     try:
         tg_id = int(payload["id"])
         tg_username = payload.get("username", "")
@@ -43,9 +45,8 @@ async def login(
         raise HTTPException(400, "Telegram ID обязателен")
 
     user_in = UserCreate(telegram_id=tg_id, username=tg_username)
-
-    # 4) upsert + is_admin
     existing = await user_crud.get_by_telegram_id(db, telegram_id=tg_id)
+
     if existing is None:
         is_admin = tg_id in ADMIN_TELEGRAM_IDS
         user_obj = await user_crud.create(
@@ -56,30 +57,17 @@ async def login(
         user_obj = existing
         logger.info("🔄 Уже в БД: %s", user_obj.username)
 
-    # 5) ставим cookie
+    # Установка cookie для авторизации
     response.set_cookie(
         "tg_id",
         str(tg_id),
         httponly=True,
-        secure=False,
+        secure=False,  # В продакшене меняем на True при HTTPS
         samesite="lax",
         max_age=7 * 24 * 3600,
     )
 
     return user_obj
-
-
-@router.get("/user/{telegram_id}", response_model=UserSchema)
-async def get_user(
-    telegram_id: int,
-    db: AsyncSession = Depends(db_session),
-):
-    logger.info("📌 Профиль ID=%s", telegram_id)
-    user = await user_crud.get_by_telegram_id(db, telegram_id=telegram_id)
-    if user is None:
-        logger.warning("❌ Не найден: %s", telegram_id)
-        raise HTTPException(404, "Пользователь не найден")
-    return user
 
 
 async def get_current_user(
