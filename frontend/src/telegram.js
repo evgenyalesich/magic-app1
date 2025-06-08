@@ -1,38 +1,32 @@
 // File: frontend/src/telegram.js
+const API_BASE = process.env.REACT_APP_API_BASE; // или как вы у себя храните базовый URL
 
-// Базовый URL вашего бэкенда
-const API_BASE = process.env.REACT_APP_API_BASE || '';
-
-/**
- * Инициализирует Telegram Web App, расширяет окно на весь экран,
- * верифицирует initData на сервере и возвращает профиль пользователя.
- */
 export async function initTelegram() {
-  const tg = window.Telegram?.WebApp;
-  if (!tg) {
-    throw new Error('Запущено не из Telegram WebApp');
-  }
-
-  tg.ready();
+  const tg = window.Telegram.WebApp;
   tg.expand();
 
-  // Telegram кладёт все данные при запусе веб-приложения
-  const payload = tg.initDataUnsafe;
-  if (!payload || !payload.hash) {
-    throw new Error('Нет initData или hash от Telegram');
+  if (!tg.initDataUnsafe) {
+    throw new Error('Telegram WebApp не инициализирован');
   }
 
-  const res = await fetch(`${API_BASE}/api/auth/login`, {
+  // 1) логинимся
+  const loginRes = await fetch(`${API_BASE}/api/auth/login`, {
     method: 'POST',
+    credentials: 'include',           // ← чтобы браузер сохранил и прислал куки
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',         // обязательно, чтобы сохранить куки
-    body: JSON.stringify(payload), // передаём весь объект с hash/auth_date/…
+    body: JSON.stringify(tg.initDataUnsafe),
   });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Login failed: ${res.status} ${text}`);
+  if (!loginRes.ok) {
+    throw new Error('Login failed');
   }
+  const me = await loginRes.json();
 
-  return res.json(); // { telegram_id, username, … }
+  // 2) теперь, если нужно, проверяем /api/auth/me
+  const meRes = await fetch(`${API_BASE}/api/auth/me`, {
+    credentials: 'include',
+  });
+  if (!meRes.ok) {
+    throw new Error('Не удалось получить профиль');
+  }
+  return meRes.json();
 }

@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str
     ADMIN_TELEGRAM_IDS: List[int] = Field(default_factory=list)
     DATABASE_URL: str = "postgresql+asyncpg://postgres:6628@localhost:5433/darina_db"
+    FRONTEND_ORIGIN: str
 
     class Config:
         env_file = ".env"
