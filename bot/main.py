@@ -26,9 +26,7 @@ async def start_handler(message: types.Message):
     keyboard = InlineKeyboardBuilder()
     keyboard.button(
         text="🔮 Войти в Magic App",
-        web_app=WebAppInfo(
-            url="https://internship-casting-rays-gardening.trycloudflare.com"
-        ),
+        web_app=WebAppInfo(url="https://atlantic-reduces-fame-also.trycloudflare.com"),
     )
 
     await message.answer(

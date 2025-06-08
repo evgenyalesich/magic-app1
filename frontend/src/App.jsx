@@ -1,14 +1,11 @@
 // frontend/src/App.jsx
-
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-import { initTelegram, fetchCurrentUser } from "./telegram";
 import ProductList from "./components/ProductList";
 import ProductDetail from "./components/ProductDetail";
 import ChatWindow from "./components/ChatWindow";
-
+import { initTelegram, fetchCurrentUser } from "./telegram";
 import "./App.css";
 
 const queryClient = new QueryClient();
@@ -17,15 +14,23 @@ function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Если WebApp: логинимся через Telegram
-    if (window.Telegram?.WebApp) {
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      // внутри WebApp — логинимся через Telegram
       initTelegram()
-        .then(setUser)
         .catch(err => {
-          console.error("Auth error:", err);
+          console.error("Ошибка логина:", err);
+        })
+        .then(() => fetchCurrentUser())
+        .then(profile => {
+          if (profile) setUser(profile);
+          else console.warn("Login succeeded but /me вернул null");
         });
+      // тема
+      const theme = tg.colorScheme;
+      document.documentElement.classList.toggle("dark", theme === "dark");
     } else {
-      // fallback (desktop или прямой заход): пытаемся по куки
+      // прямой заход — просто пробуем по кукам
       fetchCurrentUser().then(profile => {
         if (profile) setUser(profile);
       });
@@ -35,7 +40,7 @@ function App() {
   if (!user) {
     return (
       <div className="flex items-center justify-center h-screen">
-        Загрузка или не авторизован
+        Загрузка…
       </div>
     );
   }
