@@ -9,98 +9,81 @@ import time
 from pathlib import Path
 from typing import Final
 
-# ──────────  stdout → UTF-8 (Windows)  ──────────
-if hasattr(sys.stdout, "reconfigure"):  # Py 3.7+
+# ─────────────────────── stdout → UTF-8 (Windows) ───────────────────────
+if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:  # на всякий случай
+    except Exception:  # pragma: no cover
         pass
 
-# ──────────  базовый логгер  ──────────
+# ───────────────────────────── базовый логгер ───────────────────────────
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
 _handler = logging.StreamHandler(stream=sys.stdout)
 _handler.setFormatter(
-    logging.Formatter(
-        fmt="%(asctime)s [%(levelname)-8s] %(message)s",
-        datefmt="%H:%M:%S",
-    )
+    logging.Formatter("%(asctime)s [%(levelname)-8s] %(message)s", "%H:%M:%S")
 )
 logging.basicConfig(level=LOG_LEVEL, handlers=[_handler])
-
 log = logging.getLogger("runner")
 
-ROOT: Final = Path(__file__).resolve().parent  # = project root
+# ────────────────────────────── константы ───────────────────────────────
+ROOT: Final = Path(__file__).resolve().parent  # корень проекта
+BACKEND_DIR: Final = ROOT / "backend"
+BOT_DIR: Final = ROOT / "bot"
 
 
+# ─────────────────────────── вспомогательные ────────────────────────────
 def _stream(proc: subprocess.Popen, prefix: str) -> None:
-    """Проксируем выходной поток подпроцесса в общий лог."""
+    """Проксируем stdout подпроцесса в общий лог."""
     with proc.stdout:  # type: ignore[attr-defined]
         for raw in iter(proc.stdout.readline, b""):
             line = raw.decode(errors="replace").rstrip()
-            if line:  # пустые не печатаем
+            if line:
                 log.debug("[%s] %s", prefix, line)
-    proc.stdout.close()  # type: ignore[attr-defined]
 
 
 def _spawn(cmd: list[str], cwd: Path, prefix: str) -> subprocess.Popen:
+    """Запускает подпроцесс + отдельный поток-логгер."""
     log.info("▶️  %s (cwd=%s)", " ".join(cmd), cwd)
 
-    # наследуем текущие переменные + добавляем/переопределяем нужные
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
+    # добавляем корень проекта в PYTHONPATH, чтобы backend.* импортировался в reloader
+    root_str = str(ROOT)
+    env["PYTHONPATH"] = (
+        root_str + os.pathsep + env.get("PYTHONPATH", "")
+        if env.get("PYTHONPATH")
+        else root_str
+    )
 
     proc = subprocess.Popen(
         cmd,
         cwd=cwd,
-        env=env,  # ← вот эта строка
+        env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         bufsize=1,  # line-buffered
     )
     log.info("[%s] pid=%s", prefix, proc.pid)
 
-    # отдельный поток, чтобы не блокировать основной цикл
-    threading.Thread(
-        target=_stream,
-        args=(proc, prefix),
-        daemon=True,
-    ).start()
+    threading.Thread(target=_stream, args=(proc, prefix), daemon=True).start()
     return proc
 
 
 def start_backend() -> subprocess.Popen:
-    """
-    Стартуем Uvicorn из корня проекта, чтобы import backend.*
-    работал как пакет.  PYTHONPATH не трогаем – достаточно
-    корректного cwd и backend.main:app.
-    """
     return _spawn(
         ["uvicorn", "backend.main:app", "--reload", "--log-level", LOG_LEVEL.lower()],
-        ROOT,  # <─ cwd = корень!
+        ROOT,  # cwd = корень, чтобы backend был пакетом
         "backend",
     )
 
 
 def start_bot() -> subprocess.Popen:
-    return _spawn(
-        ["python", "main.py"],
-        ROOT / "bot",
-        "bot",
-    )
-
-
-def wait(proc: subprocess.Popen, name: str) -> None:
-    """Блокируемся, дожидаясь завершения процесса и логируем код возврата."""
-    rc = proc.wait()
-    if rc == 0:
-        log.info("✅ %s завершился (exit-code 0)", name)
-    else:
-        log.warning("💥 %s ушёл с кодом %s", name, rc)
+    return _spawn(["python", "main.py"], BOT_DIR, "bot")
 
 
 def graceful_kill(proc: subprocess.Popen, name: str, timeout: int = 5) -> None:
-    """SIGTERM → ждём → SIGKILL."""
+    """SIGTERM → ждём → SIGKILL, если процесс «залип»."""
     if proc.poll() is not None:
         return
     log.info("⏹  Завершаю %s …", name)
@@ -108,15 +91,13 @@ def graceful_kill(proc: subprocess.Popen, name: str, timeout: int = 5) -> None:
     try:
         proc.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
-        log.warning("⛔ %s не завершился за %ss → kill", name, timeout)
+        log.warning("⛔ %s не вышел за %ss → kill", name, timeout)
         proc.kill()
         proc.wait()
 
 
-def main() -> None:
-    backend = start_backend()
-    bot = start_bot()
-
+def wait_keyboard_interrupt(backend: subprocess.Popen, bot: subprocess.Popen) -> None:
+    """Главный цикл – ждём завершения дочерних процессов или Ctrl-C."""
     try:
         while True:
             if backend.poll() is not None or bot.poll() is not None:
@@ -125,11 +106,19 @@ def main() -> None:
     except KeyboardInterrupt:
         log.info("👋 Ctrl-C – останавливаем всё")
 
+
+# ─────────────────────────────── main ────────────────────────────────────
+def main() -> None:
+    backend = start_backend()
+    bot = start_bot()
+
+    wait_keyboard_interrupt(backend, bot)
+
     graceful_kill(backend, "backend")
     graceful_kill(bot, "bot")
 
-    # дожидаемся потоков-читалок; иначе в IDE последняя строка может «съесться»
-    time.sleep(0.2)
+    # небольшая пауза, чтобы потоки-логгеры успели дописать строки
+    time.sleep(0.3)
     log.info("🏁 runner завершён")
 
 
