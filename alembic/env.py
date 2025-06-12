@@ -14,7 +14,7 @@ from alembic import context
 # 1) Добавляем корень проекта (magic-app1) в sys.path, чтобы
 #    можно было импортировать backend.models
 # ------------------------------------------------------------------------
-current_dir = os.path.dirname(__file__)            # .../magic-app1/alembic
+current_dir = os.path.dirname(__file__)  # .../magic-app1/alembic
 project_root = os.path.abspath(os.path.join(current_dir, ".."))  # .../magic-app1
 if project_root not in sys.path:
     sys.path.append(project_root)

@@ -1,78 +1,96 @@
-
 import logging
+from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Cookie, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import db_session
-from backend.services.crud import user_crud
+from backend.api.auth_utils import verify_telegram_auth, is_payload_fresh
+from backend.core.config import settings
 from backend.schemas.user import UserCreate, UserSchema
+from backend.services.crud import user_crud
 
-router = APIRouter()
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
+router = APIRouter(tags=["Auth"])
 
-ADMIN_TELEGRAM_ID = 11111111
+_ADMIN_IDS = set(settings.ADMIN_TELEGRAM_IDS)
+_IS_HTTPS = str(settings.FRONTEND_ORIGIN).startswith("https://")
 
 
+# ── /login ─────────────────────────────────────────────────────
 @router.post("/login", response_model=UserSchema)
 async def login(
-    user: UserCreate,
-    db: AsyncSession = Depends(db_session)
+    payload: Dict[str, Any] = Body(...),
+    response: Response = Response(),
+    db: AsyncSession = Depends(db_session),
 ):
+    log.info("🔑 [/login] raw payload = %s", payload)
 
-    logger.info(f"🔑 Логин пользователя: {user.telegram_id} ({user.username})")
+    is_bot_call = "hash" not in payload
+    if not is_bot_call:
+        if not verify_telegram_auth(payload):
+            raise HTTPException(400, "Invalid Telegram hash")
+        if not is_payload_fresh(payload):
+            raise HTTPException(400, "Expired auth_date")
 
-    if user.telegram_id is None:
-        raise HTTPException(status_code=400, detail="Telegram ID обязателен")
+    tg_id_raw: Optional[Any] = payload.get("id") or payload.get("telegram_id")
+    if tg_id_raw is None:
+        raise HTTPException(400, "telegram_id missing")
 
-    # Ищем в БД
-    existing_user = await user_crud.get_by_telegram_id(
-        db, telegram_id=user.telegram_id
-    )
+    try:
+        tg_id = int(tg_id_raw)
+    except ValueError:
+        raise HTTPException(400, "Bad telegram id type")
 
-    if not existing_user:
-        # Если нет — создаём
-        is_admin = (user.telegram_id == ADMIN_TELEGRAM_ID)
-        user_in_db = await user_crud.create(
+    username = str(payload.get("username", ""))
+
+    user = await user_crud.get_by_telegram_id(db, telegram_id=tg_id)
+    if user is None:
+        user = await user_crud.create(
             db,
-            obj_in=user,
-            extra_fields={"is_admin": is_admin}
+            obj_in=UserCreate(telegram_id=tg_id, username=username),
+            extra_fields={"is_admin": tg_id in _ADMIN_IDS},
         )
-        logger.info(f"✅ Пользователь {user_in_db.username} зарегистрирован в БД.")
+        log.info("✅ [/login] new user created: %s", username)
     else:
-        user_in_db = existing_user
-        logger.info(f"🔄 Пользователь {user_in_db.username} уже существует в БД.")
+        log.info("🔄 [/login] existing user: tg_id=%s user=%s", tg_id, username)
 
-    return user_in_db
+    response.set_cookie(
+        "tg_id",
+        str(tg_id),
+        httponly=True,
+        secure=_IS_HTTPS,
+        samesite="none" if _IS_HTTPS else "lax",
+        max_age=7 * 24 * 3600,
+    )
+    return user
 
 
-@router.get("/user/{telegram_id}", response_model=UserSchema)
-async def get_user(
-    telegram_id: int,
-    db: AsyncSession = Depends(db_session)
+# ── /me ────────────────────────────────────────────────────────
+@router.get("/me", response_model=UserSchema)
+async def me(
+    tg_id: Optional[str] = Cookie(None, alias="tg_id"),
+    db: AsyncSession = Depends(db_session),
 ):
+    if tg_id is None:
+        raise HTTPException(401, "Not authorised")
 
-    logger.info(f"📌 Запрос пользователя с Telegram ID: {telegram_id}")
+    try:
+        tg_id_int = int(tg_id)
+    except ValueError:
+        raise HTTPException(401, "Invalid tg_id cookie")
 
-    user = await user_crud.get_by_telegram_id(db, telegram_id=telegram_id)
-    if not user:
-        logger.warning(f"❌ Пользователь с Telegram ID {telegram_id} не найден")
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
-
-    logger.info(f"✅ Найден пользователь: {user.username}")
+    user = await user_crud.get_by_telegram_id(db, telegram_id=tg_id_int)
+    if user is None:
+        raise HTTPException(401, "User not found")
     return user
 
 
-async def get_current_user(
-    telegram_id: int = Query(
-        ...,
-        alias="telegram_id",
-        description="Telegram ID текущего пользователя"
-    ),
-    db: AsyncSession = Depends(db_session)
-) -> UserSchema:
-
-    user = await user_crud.get_by_telegram_id(db, telegram_id=telegram_id)
-    if not user:
-        raise HTTPException(status_code=401, detail="Пользователь не авторизован")
-    return user
+# ── /bot-register (aiogram) ────────────────────────────────────
+@router.post("/bot-register", response_model=UserSchema)
+async def bot_register(
+    payload: Dict[str, Any],
+    response: Response,
+    db: AsyncSession = Depends(db_session),
+):
+    return await login(payload=payload, response=response, db=db)

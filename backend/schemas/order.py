@@ -1,20 +1,34 @@
-from pydantic import BaseModel
+from decimal import Decimal
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
-class OrderItemCreate(BaseModel):
+
+# ---------------------------------------------------------------------
+# Базовые поля, которые повторяются в разных схемах
+# ---------------------------------------------------------------------
+class OrderBase(BaseModel):
     product_id: int
     quantity: int
+    price: float
 
-class OrderCreate(BaseModel):
-    user_id: int
-    items: list[OrderItemCreate]
 
-class OrderSchema(BaseModel):
+# ---------------------------------------------------------------------
+# Входящая при создании (POST /orders/)
+# ---------------------------------------------------------------------
+class OrderCreate(OrderBase):
+    user_id: int  # приходит от Telegram-Web-App
+
+
+# ---------------------------------------------------------------------
+# Ответ API (GET /orders/, POST /orders/, …)
+# ---------------------------------------------------------------------
+class OrderRead(BaseModel):
     id: int
     user_id: int
-    total_price: float
-    status: str
+    product_id: int
+    quantity: int
+    price: Decimal
+    total: Decimal
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

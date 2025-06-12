@@ -1,17 +1,18 @@
-from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, DateTime
-from datetime import datetime
+# backend/models/product.py
+
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from .base import Base
 
+
 class Product(Base):
-    __tablename__ = 'products'
+    __tablename__ = "products"
 
-    id = Column(Integer, primary_key=True)
-    category_id = Column(Integer, ForeignKey('categories.id'))
+    id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
-    description = Column(String, nullable=True)
+    price = Column(Float, nullable=False)  # <-- Float вместо Numeric
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
+    name = Column(String, index=True)
     image_url = Column(String, nullable=True)
-    price = Column(Numeric(10, 2), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    category = relationship("Category")
+    category = relationship("Category", back_populates="products")
+    description = Column(Text, nullable=True)  # ← добавили поле description

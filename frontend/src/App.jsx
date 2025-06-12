@@ -1,31 +1,58 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import Home from './pages/Home';
-import Services from './pages/Services';
-import Profile from './pages/Profile';
-import Admin from './pages/Admin';
-import Messages from './pages/Messages';
-import NotFound from './pages/NotFound';
 
-function App() {
+import { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import ProductList from './components/ProductList';
+import ProductDetail from './components/ProductDetail';
+import ChatWindow from './components/ChatWindow';
+import { telegramLogin, fetchCurrentUser } from './telegram';
+import './App.css';
+
+const queryClient = new QueryClient();
+
+function InnerApp() {
+  const navigate  = useNavigate();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        let profile = null;
+        if (window.Telegram?.WebApp) {
+          profile = await telegramLogin();
+        } else {
+          profile = await fetchCurrentUser();
+        }
+
+        if (profile) {
+          setUser(profile);
+          navigate('/', { replace: true });
+        }
+      } catch (err) {
+        console.error('Auth error:', err);
+      }
+    })();
+  }, [navigate]);
+
+  if (!user) {
+    return <div className="flex items-center justify-center h-screen">Загрузка…</div>;
+  }
+
   return (
-    <Router>
-      <Header />
-      <main className="min-h-screen">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </main>
-      <Footer />
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <Routes>
+        <Route path="/" element={<ProductList />} />
+        <Route path="/product/:id" element={<ProductDetail />} />
+        <Route path="/chat/:sessionId" element={<ChatWindow user={user} />} />
+      </Routes>
+    </QueryClientProvider>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <Router>
+      <InnerApp />
+    </Router>
+  );
+}
