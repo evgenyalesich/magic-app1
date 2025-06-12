@@ -1,3 +1,4 @@
+# backend/api/api.py
 from fastapi import APIRouter
 from .endpoints.auth import router as auth_router
 from .endpoints.products import router as products_router
@@ -7,8 +8,9 @@ from .endpoints.admin import router as admin_router
 
 api_router = APIRouter()
 
+# теперь auth_router сам отвечает за /auth/...
 api_router.include_router(auth_router, prefix="/auth", tags=["Auth"])
 api_router.include_router(products_router, prefix="/products", tags=["Products"])
-api_router.include_router(orders_router)
-api_router.include_router(messages_router)
-api_router.include_router(admin_router)  # префикс /admin уже внутри router
+api_router.include_router(orders_router, prefix="/orders", tags=["Orders"])
+api_router.include_router(messages_router, prefix="/chat", tags=["Chat"])
+api_router.include_router(admin_router, prefix="/admin", tags=["Admin"])

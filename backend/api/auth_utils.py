@@ -1,60 +1,43 @@
-# backend/api/auth_utils.py
-
 import hmac
 import hashlib
 import time
+import logging
 
 from backend.core.config import settings
 
+log = logging.getLogger(__name__)
+
 
 def verify_telegram_auth(data: dict) -> bool:
-    """
-    Проверяет правильность Telegram WebApp Login Widget payload.
-    Алгоритм (см. документацию Telegram):
-      1. Берём все пары key=value, кроме "hash", сортируем по key в лекс порядке.
-      2. Склеиваем через '\n'.
-      3. Считаем HMAC-SHA256 с ключом = sha256(BOT_TOKEN).digest().
-      4. Сравниваем result.hex() с пришедшим data["hash"].
+    """Проверка Telegram Web-App payload."""
+    if "hash" not in data:  # вызов от aiogram-бота
+        log.debug("[verify] no hash → bot-register → ok")
+        return True
 
-    Возвращает True, если совпало, иначе False.
-    """
-
-    received_hash = data.get("hash")
-    if not received_hash:
+    rec_hash = data.get("hash")
+    if not rec_hash:
+        log.warning("❌ hash пустой")
         return False
 
-    # Секретный ключ – sha256 от BOT_TOKEN
-    secret_key = hashlib.sha256(settings.BOT_TOKEN.encode()).digest()
+    secret = hashlib.sha256(settings.TELEGRAM_BOT_TOKEN.encode()).digest()
+    check_str = "\n".join(f"{k}={v}" for k, v in sorted(data.items()) if k != "hash")
+    log.debug("[verify] check_string = %s", check_str)
 
-    # Соберём все поля кроме hash
-    check_list = []
-    for k, v in data.items():
-        if k == "hash":
-            continue
-        # Telegram ожидает, что все значения будут строками
-        check_list.append(f"{k}={v}")
-    check_list.sort()
-    check_string = "\n".join(check_list)
-
-    hmac_obj = hmac.new(secret_key, check_string.encode(), digestmod=hashlib.sha256)
-    computed_hash = hmac_obj.hexdigest()
-
-    # Сравниваем через hmac.compare_digest, чтобы защититься от тайм-атак
-    return hmac.compare_digest(computed_hash, received_hash)
+    calc = hmac.new(secret, check_str.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(calc, rec_hash):
+        log.warning("❌ hash mismatch: %s ≠ %s", calc, rec_hash)
+        return False
+    return True
 
 
 def is_payload_fresh(data: dict, window: int = 300) -> bool:
-    """
-    Проверяет, что поле 'auth_date' (UNIX timestamp) не старше, чем `window` секунд.
-    Например, window=300 → 5 минут.
-    Если поля auth_date нет или оно мешаное/устарело – возвращаем False.
-    """
-    auth_date = data.get("auth_date")
-    if auth_date is None:
-        return False
+    ts = data.get("auth_date")
     try:
-        timestamp = int(auth_date)
-    except (ValueError, TypeError):
+        ts = int(ts)
+    except Exception:
+        log.warning("❌ bad auth_date: %s", ts)
         return False
-
-    return abs(time.time() - timestamp) <= window
+    fresh = abs(time.time() - ts) <= window
+    if not fresh:
+        log.warning("⏰ payload stale: %s", ts)
+    return fresh
