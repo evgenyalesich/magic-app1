@@ -1,6 +1,4 @@
-# ------------------------------------------------------------------------
-# magic-app1/alembic/env.py
-# ------------------------------------------------------------------------
+# alembic/env.py
 
 import os
 import sys
@@ -9,47 +7,36 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 
-
-# ------------------------------------------------------------------------
-# 1) Добавляем корень проекта (magic-app1) в sys.path, чтобы
-#    можно было импортировать backend.models
-# ------------------------------------------------------------------------
-current_dir = os.path.dirname(__file__)  # .../magic-app1/alembic
-project_root = os.path.abspath(os.path.join(current_dir, ".."))  # .../magic-app1
+# 1. Добавляем корень проекта в sys.path, чтобы импортировать backend
+current_dir = os.path.dirname(__file__)
+project_root = os.path.abspath(os.path.join(current_dir, ".."))
 if project_root not in sys.path:
     sys.path.append(project_root)
 
+# 2. Импорт моделей
+from backend.models import Base  # Убедись, что здесь Base = declarative_base()
 
-# ------------------------------------------------------------------------
-# 2) Импортируем SQLAlchemy Base из backend/models.py
-#    Именно там у вас должен быть:
-#       Base = declarative_base()
-#       class User(Base): ...
-#       class Product(Base): ...
-#       и т. д.
-# ------------------------------------------------------------------------
-from backend.models import Base  # noqa: E402
+# 3. Загружаем переменные окружения из .env
+from dotenv import load_dotenv
+load_dotenv()
 
-
-# ------------------------------------------------------------------------
-# 3) target_metadata нужен, чтобы Alembic знал, с чем сравнивать схему
-# ------------------------------------------------------------------------
-target_metadata = Base.metadata
-
-
-# ------------------------------------------------------------------------
-# 4) Загружаем конфигурацию Alembic из alembic.ini
-# ------------------------------------------------------------------------
+# 4. Настройка Alembic-конфига
 config = context.config
 
-# Настройка логгера (настройки берутся из alembic.ini → секции [loggers]/[handlers]/[formatters])
+# 5. Подменяем URL из .env (asyncpg → psycopg2 для Alembic)
+database_url = os.getenv("DATABASE_URL", "")
+if "asyncpg" in database_url:
+    database_url = database_url.replace("asyncpg", "psycopg2")
+config.set_main_option("sqlalchemy.url", database_url)
+
+# 6. Настройка логгера
 if config.config_file_name:
     fileConfig(config.config_file_name)
 
+# 7. Метаданные моделей
+target_metadata = Base.metadata
 
-# ------------------------------------------------------------------------
-# 5) Offline‐режим: генерируем SQL без подключения к БД
-# ------------------------------------------------------------------------
+# 8. Offline-режим
 def run_migrations_offline():
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
@@ -62,10 +49,7 @@ def run_migrations_offline():
     with context.begin_transaction():
         context.run_migrations()
 
-
-# ------------------------------------------------------------------------
-# 6) Online‐режим: подключаемся к БД и применяем миграции «на лету»
-# ------------------------------------------------------------------------
+# 9. Online-режим
 def run_migrations_online():
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
@@ -74,15 +58,16 @@ def run_migrations_online():
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True
+        )
 
         with context.begin_transaction():
             context.run_migrations()
 
-
-# ------------------------------------------------------------------------
-# 7) Запускаем нужный блок: offline or online
-# ------------------------------------------------------------------------
+# 10. Запуск
 if context.is_offline_mode():
     run_migrations_offline()
 else:
