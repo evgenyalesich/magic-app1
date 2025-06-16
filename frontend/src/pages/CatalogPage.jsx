@@ -1,31 +1,46 @@
-import { useEffect, useState } from 'react'
-import { fetchProducts, createOrder } from '../api/products'
+// src/pages/CatalogPage.jsx
+import { useEffect, useState } from "react";
+import { fetchProducts, createOrder } from "../api/products";
+import styles from "./CatalogPage.module.css";
 
 export default function CatalogPage() {
-  const [items, setItems] = useState([])
+  const [items, setItems] = useState([]);
 
   useEffect(() => {
-    fetchProducts().then(setItems)
-  }, [])
+    fetchProducts().then(setItems);
+  }, []);
+
+  const handleBuy = async (id) => {
+    await createOrder(id);
+    alert("Заказ оформлен");
+  };
 
   return (
-    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {items.map(item => (
-        <div key={item.id} className="border rounded-lg p-4 shadow">
-          <img src={item.image_url} alt={item.title} className="w-full h-48 object-cover mb-2"/>
-          <h2 className="text-xl font-semibold">{item.title}</h2>
-          <p className="text-gray-600">{item.description}</p>
-          <div className="mt-4 flex justify-between items-center">
-            <span className="font-bold">{item.price} ₽</span>
-            <button
-              className="bg-blue-500 text-white px-4 py-2 rounded"
-              onClick={() => createOrder(item.id).then(() => alert('Заказ оформлен'))}
-            >
-              Купить
-            </button>
+    <div className={styles.container}>
+      <div className={styles.grid}>
+        {items.map((item) => (
+          <div key={item.id} className={styles.card}>
+            <img
+              src={item.image_url}
+              alt={item.title}
+              className={styles.cardImage}
+            />
+            <div className={styles.cardContent}>
+              <h2 className={styles.title}>{item.title}</h2>
+              <p className={styles.description}>{item.description}</p>
+              <div className={styles.footer}>
+                <span className={styles.price}>{item.price} ₽</span>
+                <button
+                  className={styles.button}
+                  onClick={() => handleBuy(item.id)}
+                >
+                  Купить
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-  )
+  );
 }

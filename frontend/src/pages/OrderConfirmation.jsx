@@ -1,37 +1,63 @@
-
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { fetchOrder } from '../api/orders';
+// frontend/src/pages/OrderConfirmation.jsx
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { fetchOrder } from "../api/orders";
+import styles from "./OrderConfirmation.module.css";
 
 export default function OrderConfirmation() {
   const { orderId } = useParams();
-  const nav = useNavigate();
+  const navigate = useNavigate();
   const [order, setOrder] = useState(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchOrder(orderId)
       .then(setOrder)
-      .catch(err => setError(err.message));
+      .catch((err) => setError(err.message));
   }, [orderId]);
 
-  if (error) return <p className="text-red-500">Ошибка: {error}</p>;
-  if (!order) return <p>Загрузка...</p>;
+  if (error) {
+    return <p className={styles.error}>Ошибка: {error}</p>;
+  }
 
-  const { product, status, created_at } = order;
+  if (!order) {
+    return <p className={styles.loading}>Загрузка...</p>;
+  }
+
+  const { product, status, created_at, id } = order;
 
   return (
-    <div className="max-w-md mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Заказ №{order.id}</h1>
-      <p><strong>Услуга:</strong> {product.name}</p>
-      <p><strong>Описание:</strong> {product.description}</p>
-      <p><strong>Цена:</strong> {product.price} ₽</p>
-      <p><strong>Дата:</strong> {new Date(created_at).toLocaleString()}</p>
-      <p><strong>Статус:</strong> {status}</p>
-      <button
-        onClick={() => nav(`/chat/${order.id}`)}
-        className="mt-6 px-4 py-2 bg-blue-600 text-white rounded"
-      >
+    <div className={styles.page}>
+      <h1 className={styles.title}>Заказ №{id}</h1>
+
+      <div className={styles.detailRow}>
+        <span className={styles.label}>Услуга: </span>
+        <span className={styles.value}>{product.name}</span>
+      </div>
+
+      <div className={styles.detailRow}>
+        <span className={styles.label}>Описание: </span>
+        <span className={styles.value}>{product.description}</span>
+      </div>
+
+      <div className={styles.detailRow}>
+        <span className={styles.label}>Цена: </span>
+        <span className={styles.value}>{product.price} ₽</span>
+      </div>
+
+      <div className={styles.detailRow}>
+        <span className={styles.label}>Дата: </span>
+        <span className={styles.value}>
+          {new Date(created_at).toLocaleString()}
+        </span>
+      </div>
+
+      <div className={styles.detailRow}>
+        <span className={styles.label}>Статус: </span>
+        <span className={styles.value}>{status}</span>
+      </div>
+
+      <button className={styles.button} onClick={() => navigate(`/chat/${id}`)}>
         Написать в чат
       </button>
     </div>

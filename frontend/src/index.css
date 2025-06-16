@@ -1,3 +1,42 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* 1) Сброс базовых отступов и box-sizing */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 2) Глобальные CSS-переменные (Design Tokens) */
+:root {
+  /* Цвета */
+  --color-bg: #f7f6f3;
+  --color-surface: #ffffff;
+  --color-primary: #d8c3a5;
+  --color-secondary: #a6bdbd;
+  --color-accent: #f3e9e5;
+  --color-text: #333333;
+  --color-text-light: #666666;
+
+  /* Типографика */
+  --font-family-base: "Helvetica Neue", Arial, sans-serif;
+  --font-size-base: 16px;
+  --line-height-base: 1.5;
+
+  /* Отступы */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+}
+
+/* 3) Базовые стили body */
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  min-height: 100vh;
+}

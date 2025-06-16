@@ -1,43 +1,69 @@
-import hmac
+# backend/api/auth_utils.py
 import hashlib
-import time
+import hmac
 import logging
+from time import time
+from urllib.parse import parse_qsl
 
 from backend.core.config import settings
 
 log = logging.getLogger(__name__)
 
+# ❗️ секрет – это САМ ТОКЕН, без каких-либо хешей
+_SECRET: bytes = settings.TELEGRAM_BOT_TOKEN.encode()
 
-def verify_telegram_auth(data: dict) -> bool:
-    """Проверка Telegram Web-App payload."""
-    if "hash" not in data:  # вызов от aiogram-бота
-        log.debug("[verify] no hash → bot-register → ok")
-        return True
-
-    rec_hash = data.get("hash")
-    if not rec_hash:
-        log.warning("❌ hash пустой")
-        return False
-
-    secret = hashlib.sha256(settings.TELEGRAM_BOT_TOKEN.encode()).digest()
-    check_str = "\n".join(f"{k}={v}" for k, v in sorted(data.items()) if k != "hash")
-    log.debug("[verify] check_string = %s", check_str)
-
-    calc = hmac.new(secret, check_str.encode(), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(calc, rec_hash):
-        log.warning("❌ hash mismatch: %s ≠ %s", calc, rec_hash)
-        return False
-    return True
+_TTL = 24 * 3600     # допустимый «возраст» initData (секунды)
 
 
-def is_payload_fresh(data: dict, window: int = 300) -> bool:
-    ts = data.get("auth_date")
+def _hmac_sha256_hex(secret: bytes, msg: str) -> str:
+    """Возвращает hex-строку HMAC-SHA256(secret, msg)."""
+    return hmac.new(secret, msg.encode(), hashlib.sha256).hexdigest()
+
+
+def _build_data_check_string(raw: str) -> tuple[str, dict]:
+    """
+    Формирует строку, по которой Telegram считает подпись.
+
+    Берём все «k=v» кроме --> hash и signature,
+    сортируем по key, соединяем через «\n».
+    """
+    pairs = [
+        (k, v)
+        for k, v in parse_qsl(raw, keep_blank_values=True)
+        if k not in ("hash", "signature")
+    ]
+    pairs.sort(key=lambda p: p[0])
+    dcs = "\n".join(f"{k}={v}" for k, v in pairs)
+    return dcs, dict(pairs)
+
+
+def verify_telegram_auth(init_params: dict[str, str]) -> bool:
+    """
+    Проверяет Telegram Web-App payload.
+
+    init_params — уже распарсенный словарь {"query_id": "...", "user": "...", ...}
+    """
     try:
-        ts = int(ts)
-    except Exception:
-        log.warning("❌ bad auth_date: %s", ts)
+        # превращаем обратно в строку вида k=v&k=v…
+        raw = "&".join(f"{k}={v}" for k, v in init_params.items())
+        dcs, _ = _build_data_check_string(raw)
+
+        recv_hash = init_params.get("hash", "")
+        calc_hash = _hmac_sha256_hex(_SECRET, dcs)
+
+        log.debug("[verify]\ndata_check_string:\n%s", dcs)
+        log.debug("received_hash=%s", recv_hash)
+        log.debug("computed_hash=%s", calc_hash)
+
+        return hmac.compare_digest(calc_hash, recv_hash)
+    except Exception as exc:        # noqa: BLE001
+        log.exception("verify_telegram_auth failed: %s", exc)
         return False
-    fresh = abs(time.time() - ts) <= window
-    if not fresh:
-        log.warning("⏰ payload stale: %s", ts)
-    return fresh
+
+
+def is_payload_fresh(parsed: dict) -> bool:
+    """Проверяем поле auth_date на «свежесть»."""
+    try:
+        return (time() - int(parsed["auth_date"])) < _TTL
+    except Exception:               # noqa: BLE001
+        return False

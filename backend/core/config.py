@@ -1,6 +1,7 @@
-# ⬇️ ⬇️ полный код – ничего править не нужно
 from __future__ import annotations
+
 import logging
+import os
 from pathlib import Path
 from typing import Any, List
 
@@ -10,7 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 log = logging.getLogger(__name__)
 
-# ────────── поиск .env ──────────
+# ─────────────────── поиск .env ───────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent          # backend/
 BACKEND_ENV = BASE_DIR / ".env"
 ROOT_ENV = BASE_DIR.parent / ".env"
@@ -28,13 +29,13 @@ else:
 if env_file:
     load_dotenv(env_file)
 
-# ────────── модель настроек ──────────
+# ─────────────────── модель настроек ───────────────
 class Settings(BaseSettings):
-    # обязательно
-    TELEGRAM_BOT_TOKEN: str      = Field(..., env="TELEGRAM_BOT_TOKEN")
+    # --- обязательные ---
+    TELEGRAM_BOT_TOKEN: str = Field(..., env="TELEGRAM_BOT_TOKEN")
     FRONTEND_ORIGIN:    AnyHttpUrl = Field(..., env="FRONTEND_ORIGIN")
 
-    # опционально
+    # --- необязательные / со значениями по-умолчанию ---
     ADMIN_TELEGRAM_IDS: List[int] = Field(default_factory=list, env="ADMIN_TELEGRAM_IDS")
     DATABASE_URL: str = Field(
         default="postgresql+asyncpg://postgres:6628@localhost:5433/darina_db",
@@ -47,6 +48,10 @@ class Settings(BaseSettings):
     @field_validator("ADMIN_TELEGRAM_IDS", mode="before")
     @classmethod
     def _make_list(cls, v: Any) -> List[int]:
+        """
+        > ADMIN_TELEGRAM_IDS=1,2,3  →  [1,2,3]
+        > ADMIN_TELEGRAM_IDS=        →  []
+        """
         if v in (None, "", []):
             return []
         if isinstance(v, int):
@@ -55,7 +60,7 @@ class Settings(BaseSettings):
             v = v.replace(" ", "").split(",")
         try:
             return [int(i) for i in v if str(i).strip()]
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             raise ValueError(f"Не могу разобрать ADMIN_TELEGRAM_IDS: {v}") from exc
 
     # ---------- pydantic-конфиг ----------
@@ -63,10 +68,11 @@ class Settings(BaseSettings):
         env_file=env_file or ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore",      # ← разрешаем лишние переменные
+        extra="ignore",           # ← важно!
     )
 
-# ────────── инициализация ──────────
+
+# ─────────────────── инициализация ─────────────────
 try:
     settings = Settings()
     log.info("✅ Settings загружены\n%s", settings.model_dump())

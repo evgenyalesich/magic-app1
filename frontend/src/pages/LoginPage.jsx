@@ -1,49 +1,46 @@
 // src/pages/LoginPage.jsx
-
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { loginWithTelegram } from "../api/auth";
+import { useQueryClient } from "@tanstack/react-query";
+import { loginWithTelegram, fetchMe } from "../api/auth";
+import styles from "./LoginPage.module.css";
 
 export default function LoginPage() {
   const [error, setError] = useState(null);
   const [searchParams] = useSearchParams();
-  const nav = useNavigate();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
 
   useEffect(() => {
-    // 1) получаем payload
-    // WebApp-версия
-    const tgInitData = window.Telegram?.WebApp?.initData;
-    // fallback — initData в URL, если открыли в браузере
-    const urlInitData = searchParams.get("initData");
-
-    const raw = tgInitData || urlInitData;
-    let payload;
-    try {
-      if (!raw) throw new Error("No initData from Telegram");
-      // Telegram передаёт initData строкой "k1=v1&k2=v2..."
-      payload = Object.fromEntries(
-        raw.split("&").map((pair) => {
-          const [k, v] = pair.split("=");
-          return [k, decodeURIComponent(v)];
-        })
-      );
-    } catch (e) {
-      setError(e.message);
+    // 1) берём initData из WebApp или URL
+    const raw =
+      window.Telegram?.WebApp?.initData || searchParams.get("initData");
+    if (!raw) {
+      setError("Нет initData от Telegram");
       return;
     }
 
-    // 2) POST на /auth/login
-    loginWithTelegram(payload)
-      .then(() => nav("/catalog"))
-      .catch((e) => setError(e.message));
-  }, [nav, searchParams]);
+    // 2) постим разобранный payload
+    loginWithTelegram(raw)
+      .then(() => {
+        // 3) если login OK, сразу тащим профиль
+        return qc.fetchQuery(["me"], fetchMe);
+      })
+      .then((me) => {
+        if (!me) throw new Error("Не удалось получить профиль");
+        navigate("/", { replace: true });
+      })
+      .catch((e) => {
+        setError(e.response?.data?.message || e.message);
+      });
+  }, [qc, navigate, searchParams]);
 
   return (
-    <div className="h-screen flex items-center justify-center">
+    <div className={styles.page}>
       {error ? (
-        <div className="text-red-600">Ошибка входа: {error}</div>
+        <div className={styles.error}>Ошибка входа: {error}</div>
       ) : (
-        <div>Входим через Telegram…</div>
+        <div className={styles.loading}>Входим через Telegram…</div>
       )}
     </div>
   );
