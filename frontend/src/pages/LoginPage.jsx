@@ -1,4 +1,3 @@
-// src/pages/LoginPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -15,22 +14,30 @@ export default function LoginPage() {
     // 1) берём initData из WebApp или URL
     const raw =
       window.Telegram?.WebApp?.initData || searchParams.get("initData");
+
+    console.log("🧪 [LoginPage] raw initData =", raw); // 👈 DEBUG
+
     if (!raw) {
       setError("Нет initData от Telegram");
       return;
     }
 
-    // 2) постим разобранный payload
+    // 2) логинимся на backend
     loginWithTelegram(raw)
       .then(() => {
-        // 3) если login OK, сразу тащим профиль
+        console.log("✅ [LoginPage] Login successful"); // 👈 DEBUG
+
+        // 3) тащим профиль юзера
         return qc.fetchQuery(["me"], fetchMe);
       })
       .then((me) => {
         if (!me) throw new Error("Не удалось получить профиль");
+        console.log("👤 [LoginPage] User profile:", me); // 👈 DEBUG
+
         navigate("/", { replace: true });
       })
       .catch((e) => {
+        console.error("❌ [LoginPage] Ошибка логина:", e); // 👈 DEBUG
         setError(e.response?.data?.message || e.message);
       });
   }, [qc, navigate, searchParams]);

@@ -1,4 +1,3 @@
-# backend/api/auth_utils.py
 import hashlib
 import hmac
 import logging
@@ -10,7 +9,12 @@ from backend.core.config import settings
 log = logging.getLogger(__name__)
 
 # ❗️ секрет – это САМ ТОКЕН, без каких-либо хешей
-_SECRET: bytes = settings.TELEGRAM_BOT_TOKEN.encode()
+_SECRET: bytes = hmac.new(
+    key=b"WebAppData",
+    msg=settings.TELEGRAM_BOT_TOKEN.encode(),
+    digestmod=hashlib.sha256
+).digest()
+
 
 _TTL = 24 * 3600     # допустимый «возраст» initData (секунды)
 

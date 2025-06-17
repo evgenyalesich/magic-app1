@@ -1,18 +1,22 @@
-// Базовый URL вашего бэкенда (замените на свой домен)
-const API_BASE_URL =
-  "https://pray-generating-graduates-housewives.trycloudflare.com";
+// Базовый URL вашего бэкенда
+const API_BASE_URL = "https://adventure-tie-inn-progressive.trycloudflare.com";
 
 // Утилита для запросов к API с обработкой ошибок и cookie
 async function request(path, options = {}) {
   const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "GET", // по умолчанию
     credentials: "include", // передаём cookie для авторизации
     headers: { "Content-Type": "application/json" },
     ...options,
   });
+
   if (!res.ok) {
     const errorText = await res.text();
+    console.error(`[API ERROR] ${res.status} ${path} →`, errorText);
     throw new Error(`API error ${res.status}: ${errorText}`);
   }
+
+  if (res.status === 204) return null; // No content
   return res.json();
 }
 

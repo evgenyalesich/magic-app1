@@ -1,6 +1,11 @@
-// src/App.jsx
-import React from "react";
-import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
+import React, { useEffect } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { useMe } from "./api/auth";
@@ -20,14 +25,14 @@ function Shell() {
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
-        <Link to="/" className={styles.logo}>
+        <a href="/" className={styles.logo}>
           🔮 Magic App
-        </Link>
+        </a>
         <div className={styles.controls}>
           {me.is_admin && (
-            <Link to="/admin" className={styles.adminLink}>
+            <a href="/admin" className={styles.adminLink}>
               Admin
-            </Link>
+            </a>
           )}
           <CartButton />
         </div>
@@ -43,6 +48,22 @@ function Shell() {
   );
 }
 
+// ❗️Компонент обёртка, проверяющая initData
+function InitDataRedirector() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const initData = window.Telegram?.WebApp?.initData;
+    if (initData) {
+      navigate(`/login?initData=${encodeURIComponent(initData)}`, {
+        replace: true,
+      });
+    }
+  }, [navigate]);
+
+  return null; // ничего не рендерим
+}
+
 const queryClient = new QueryClient();
 
 export default function App() {
@@ -51,7 +72,15 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/*" element={<Shell />} />
+          <Route
+            path="/*"
+            element={
+              <>
+                <InitDataRedirector />
+                <Shell />
+              </>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

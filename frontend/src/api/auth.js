@@ -1,4 +1,3 @@
-// src/api/auth.js
 import api from "./index";
 import { useQuery } from "@tanstack/react-query";
 
@@ -8,9 +7,18 @@ import { useQuery } from "@tanstack/react-query";
  * @returns {Promise<any>}
  */
 export function loginWithTelegram(rawInitData) {
+  console.log("📤 [auth.js] Отправка init_data в login:", rawInitData); // 👈 LOG
+
   return api
     .post("/auth/login", { init_data: rawInitData })
-    .then((res) => res.data);
+    .then((res) => {
+      console.log("✅ [auth.js] Ответ login:", res.data); // 👈 LOG
+      return res.data;
+    })
+    .catch((err) => {
+      console.error("❌ [auth.js] Ошибка login:", err?.response?.data || err); // 👈 LOG
+      throw err;
+    });
 }
 
 /**
@@ -20,11 +28,14 @@ export function loginWithTelegram(rawInitData) {
 export async function fetchMe() {
   try {
     const { data } = await api.get("/auth/me");
+    console.log("👤 [auth.js] fetchMe — профиль:", data); // 👈 LOG
     return data;
   } catch (err) {
     if (err.response?.status === 401) {
+      console.warn("⚠️ [auth.js] fetchMe — не авторизован"); // 👈 LOG
       return null;
     }
+    console.error("❌ [auth.js] fetchMe — ошибка:", err?.response?.data || err); // 👈 LOG
     throw err;
   }
 }

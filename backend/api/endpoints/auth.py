@@ -1,4 +1,3 @@
-# backend/api/endpoints/auth.py
 import json
 import logging
 from typing import Any, Dict, Optional
