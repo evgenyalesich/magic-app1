@@ -1,33 +1,34 @@
 # backend/schemas/category.py
+from pydantic import BaseModel, ConfigDict
 
-from pydantic import BaseModel
+
+# одна общая конфигурация, разрешающая чтение из ORM-объектов
+ORM_CONFIG = ConfigDict(from_attributes=True)
 
 
 class CategoryBase(BaseModel):
     """
-    Базовая схема для категории:
-      - name: str
+    Базовая схема категории (только имя).
     """
-
     name: str
+
+    model_config = ORM_CONFIG
 
 
 class CategoryCreate(CategoryBase):
     """
-    Схема для создания новой категории.
-    Наследует поле `name` из CategoryBase.
+    Используется при создании новой категории.
+    Наследует поле `name` без изменений.
     """
-
+    # дополнительных полей нет
     pass
 
 
 class CategoryRead(CategoryBase):
     """
-    Схема для отдачи существующей категории из БД.
-    Добавляет автоматически генерируемое поле `id: int`.
+    Схема, которую возвращает API для существующей категории.
+    Добавляется авто-генерируемое поле `id`.
     """
-
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ORM_CONFIG

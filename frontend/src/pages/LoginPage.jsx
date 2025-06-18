@@ -1,3 +1,4 @@
+// src/pages/LoginPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -11,34 +12,53 @@ export default function LoginPage() {
   const qc = useQueryClient();
 
   useEffect(() => {
-    // 1) берём initData из WebApp или URL
-    const raw =
-      window.Telegram?.WebApp?.initData || searchParams.get("initData");
+    console.group("🧪 [LoginPage] useEffect start");
 
-    console.log("🧪 [LoginPage] raw initData =", raw); // 👈 DEBUG
+    // 1) пытаемся взять initData
+    let rawInit;
+    if (window.Telegram?.WebApp?.initData) {
+      rawInit = window.Telegram.WebApp.initData;
+      console.log("  Got initData from Telegram.WebApp:", rawInit);
+    } else {
+      rawInit = searchParams.get("initData");
+      console.log("  Got initData from URL:", rawInit);
+    }
+    console.log("  typeof rawInit:", typeof rawInit);
 
-    if (!raw) {
+    if (!rawInit) {
+      console.error("  No initData — abort");
       setError("Нет initData от Telegram");
+      console.groupEnd();
       return;
     }
 
     // 2) логинимся на backend
-    loginWithTelegram(raw)
-      .then(() => {
-        console.log("✅ [LoginPage] Login successful"); // 👈 DEBUG
-
-        // 3) тащим профиль юзера
-        return qc.fetchQuery(["me"], fetchMe);
+    console.log("  Calling loginWithTelegram…");
+    loginWithTelegram(rawInit)
+      .then((loginData) => {
+        console.log("  loginWithTelegram returned:", loginData);
+        console.log("  Now fetching /auth/me…");
+        // ===> ПРАВКА: передаём объект опций, а не два аргумента
+        return qc.fetchQuery({
+          queryKey: ["me"],
+          queryFn: fetchMe,
+        });
       })
       .then((me) => {
-        if (!me) throw new Error("Не удалось получить профиль");
-        console.log("👤 [LoginPage] User profile:", me); // 👈 DEBUG
-
+        console.log("  fetchMe returned:", me);
+        if (!me) {
+          throw new Error("Не удалось получить профиль пользователя");
+        }
+        console.log("  Navigation to '/'");
         navigate("/", { replace: true });
       })
       .catch((e) => {
-        console.error("❌ [LoginPage] Ошибка логина:", e); // 👈 DEBUG
-        setError(e.response?.data?.message || e.message);
+        console.error("  ❌ [LoginPage] LoginPipe error:", e);
+        const msg = e.response?.data?.message || e.message;
+        setError(msg);
+      })
+      .finally(() => {
+        console.groupEnd();
       });
   }, [qc, navigate, searchParams]);
 

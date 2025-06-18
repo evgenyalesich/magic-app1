@@ -3,39 +3,59 @@ import { useQuery } from "@tanstack/react-query";
 
 /**
  * Логин через Telegram WebApp.
- * @param {string} rawInitData — неизменённая строка вида "k1=v1&…&hash=…"
- * @returns {Promise<any>}
  */
 export function loginWithTelegram(rawInitData) {
-  console.log("📤 [auth.js] Отправка init_data в login:", rawInitData); // 👈 LOG
+  console.group("📤 [auth.js] loginWithTelegram");
+  console.log("  rawInitData:", rawInitData);
+  console.log("  typeof rawInitData:", typeof rawInitData);
+  console.log("  api base URL:", api.defaults.baseURL);
 
   return api
     .post("/auth/login", { init_data: rawInitData })
     .then((res) => {
-      console.log("✅ [auth.js] Ответ login:", res.data); // 👈 LOG
+      console.log("  ✅ [auth.js] /auth/login status:", res.status);
+      console.log("  ✅ [auth.js] response headers:", res.headers);
+      console.log("  ✅ [auth.js] response data:", res.data);
+      console.groupEnd();
       return res.data;
     })
     .catch((err) => {
-      console.error("❌ [auth.js] Ошибка login:", err?.response?.data || err); // 👈 LOG
+      console.error(
+        "  ❌ [auth.js] /auth/login error status:",
+        err.response?.status,
+      );
+      console.error(
+        "  ❌ [auth.js] /auth/login error data:",
+        err.response?.data,
+      );
+      console.error("  ❌ [auth.js] full error:", err);
+      console.groupEnd();
       throw err;
     });
 }
 
 /**
  * Получение профиля текущего пользователя.
- * При 401 возвращает null.
  */
 export async function fetchMe() {
+  console.group("👤 [auth.js] fetchMe");
+  console.log("  api base URL:", api.defaults.baseURL);
   try {
-    const { data } = await api.get("/auth/me");
-    console.log("👤 [auth.js] fetchMe — профиль:", data); // 👈 LOG
+    const { data, status, headers } = await api.get("/auth/me");
+    console.log("  ✅ fetchMe status:", status);
+    console.log("  ✅ fetchMe headers:", headers);
+    console.log("  ✅ fetchMe data:", data);
+    console.groupEnd();
     return data;
   } catch (err) {
+    console.error("  ❌ fetchMe error status:", err.response?.status);
+    console.error("  ❌ fetchMe error data:", err.response?.data);
     if (err.response?.status === 401) {
-      console.warn("⚠️ [auth.js] fetchMe — не авторизован"); // 👈 LOG
+      console.warn("  ⚠️ fetchMe — not authorised (401)");
+      console.groupEnd();
       return null;
     }
-    console.error("❌ [auth.js] fetchMe — ошибка:", err?.response?.data || err); // 👈 LOG
+    console.groupEnd();
     throw err;
   }
 }

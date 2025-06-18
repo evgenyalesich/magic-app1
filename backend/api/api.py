@@ -10,7 +10,7 @@ api_router = APIRouter()
 
 # теперь auth_router сам отвечает за /auth/...
 api_router.include_router(auth_router, prefix="/auth", tags=["Auth"])
-api_router.include_router(products_router, prefix="/products", tags=["Products"])
+api_router.include_router(products_router, tags=["Products"])
 api_router.include_router(orders_router, prefix="/orders", tags=["Orders"])
 api_router.include_router(messages_router, prefix="/chat", tags=["Chat"])
 api_router.include_router(admin_router, prefix="/admin", tags=["Admin"])

@@ -1,17 +1,19 @@
-from pydantic import BaseModel
+# backend/schemas/user.py
+from pydantic import BaseModel, ConfigDict
 
 
 class UserBase(BaseModel):
     telegram_id: int
     username: str | None = None
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class UserCreate(BaseModel):
     username: str
     telegram_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserSchema(BaseModel):
@@ -20,6 +22,4 @@ class UserSchema(BaseModel):
     username: str
     is_admin: bool
 
-    class Config:
-        orm_mode = True
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

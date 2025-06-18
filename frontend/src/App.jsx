@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useEffect } from "react";
 import {
   BrowserRouter,
@@ -48,20 +49,22 @@ function Shell() {
   );
 }
 
-// ❗️Компонент обёртка, проверяющая initData
+// ❗️Компонент-редиректор, который бежит на /login только если НЕ аутентифицирован
 function InitDataRedirector() {
+  const { data: me, isLoading } = useMe();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const initData = window.Telegram?.WebApp?.initData;
-    if (initData) {
+    if (isLoading) return;
+    if (!me && window.Telegram?.WebApp?.initData) {
+      const initData = window.Telegram.WebApp.initData;
       navigate(`/login?initData=${encodeURIComponent(initData)}`, {
         replace: true,
       });
     }
-  }, [navigate]);
+  }, [me, isLoading, navigate]);
 
-  return null; // ничего не рендерим
+  return null;
 }
 
 const queryClient = new QueryClient();

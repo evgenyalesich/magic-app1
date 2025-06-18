@@ -1,3 +1,5 @@
+# endpoints/api/admin.py
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -5,17 +7,17 @@ from backend.api.deps import db_session, get_current_user
 from backend.services.crud import user_crud, order_crud, message_crud
 from backend.schemas.admin import AdminStats
 
-router = APIRouter(prefix="/admin", tags=["Admin"])
+router = APIRouter(tags=["Admin"])
 
 
-@router.get("/", response_model=dict)
+@router.get("/", response_model=dict, summary="Admin Home")
 async def admin_home(user=Depends(get_current_user)):
     if not user.is_admin:
         raise HTTPException(status_code=403, detail="Доступ запрещён")
     return {"message": f"Добро пожаловать в админ-панель, {user.username}"}
 
 
-@router.get("/dashboard", response_model=AdminStats)
+@router.get("/dashboard", response_model=AdminStats, summary="Get Admin Dashboard")
 async def get_admin_dashboard(
     db: AsyncSession = Depends(db_session),
     user=Depends(get_current_user),

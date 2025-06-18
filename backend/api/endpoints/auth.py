@@ -1,13 +1,13 @@
 import json
 import logging
 from typing import Any, Dict, Optional
-from urllib.parse import unquote_plus
+from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, Body, Cookie, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import db_session
-from backend.api.auth_utils import is_payload_fresh, verify_telegram_auth
+from backend.api.auth_utils import create_telegram_auth
 from backend.core.config import settings
 from backend.schemas.user import UserCreate, UserSchema
 from backend.services.crud import user_crud
@@ -15,85 +15,67 @@ from backend.services.crud import user_crud
 log = logging.getLogger(__name__)
 router = APIRouter(tags=["Auth"])
 
-_ADMIN_IDS = set(settings.ADMIN_TELEGRAM_IDS)
-_IS_HTTPS = str(settings.FRONTEND_ORIGIN).startswith("https://")
+ADMIN_IDS = set(settings.ADMIN_TELEGRAM_IDS)
+IS_HTTPS = getattr(settings.FRONTEND_ORIGIN, "scheme", "").lower() == "https"
 
 
-# ─────────────────────────  /login  ──────────────────────────
 @router.post("/login", response_model=UserSchema)
 async def login(
     payload: Dict[str, Any] = Body(...),
     response: Response = Response(),
     db: AsyncSession = Depends(db_session),
 ):
-    log.info("🔑 [/login] raw payload = %s", payload)
+    log.info("[/login] payload = %r", payload)
 
-    # 1) пришёл Web-App initData
+    # Если пришёл WebApp initData — выдираем user
     if "init_data" in payload:
-        raw_init = payload["init_data"]
-
-        # разбираем строку «k=v&k=v…» в словарь
-        init_params: Dict[str, str] = {}
-        for part in raw_init.split("&"):
-            if "=" in part:
-                k, v = part.split("=", 1)
-                init_params[k] = unquote_plus(v)
-        log.debug("Parsed raw init_data params: %s", init_params)
-
-        # валидируем подпись и свежесть
-        if not verify_telegram_auth(init_params):
-            raise HTTPException(400, "Invalid Telegram hash")
-        if not is_payload_fresh(init_params):
-            raise HTTPException(400, "Expired auth_date")
-
-        # извлекаем user-объект
-        try:
-            user_obj = json.loads(init_params.get("user", "{}"))
-        except json.JSONDecodeError:
-            raise HTTPException(400, "Invalid user JSON")
+        raw = payload["init_data"]
+        auth = create_telegram_auth()
+        user_data = auth.extract_user(raw)
+        if not user_data:
+            raise HTTPException(400, "Cannot parse Telegram user data")
 
         payload = {
-            "telegram_id": user_obj.get("id"),
-            "username": user_obj.get("username", ""),
+            "telegram_id": user_data.get("id"),
+            "username": user_data.get("username", ""),
         }
+        log.debug("Parsed user_data: %r", payload)
 
-    # 2) вызов из бота (bot-register) — telegram_id уже в payload
+    # Теперь payload содержит telegram_id
     tg_id_raw = payload.get("telegram_id") or payload.get("id")
     if tg_id_raw is None:
         raise HTTPException(400, "telegram_id missing")
-
     try:
         tg_id = int(tg_id_raw)
     except (TypeError, ValueError):
-        raise HTTPException(400, "Bad telegram id type")
+        raise HTTPException(400, "Bad telegram_id type")
 
     username = str(payload.get("username", ""))
 
-    # создаём / обновляем пользователя
+    # Создаём или обновляем пользователя
     user = await user_crud.get_by_telegram_id(db, telegram_id=tg_id)
     if user is None:
         user = await user_crud.create(
             db,
             obj_in=UserCreate(telegram_id=tg_id, username=username),
-            extra_fields={"is_admin": tg_id in _ADMIN_IDS},
+            extra_fields={"is_admin": tg_id in ADMIN_IDS},
         )
-        log.info("✅ [/login] new user created: %s", username)
+        log.info("Created new user %s (%s)", username, tg_id)
     else:
-        log.info("🔄 [/login] existing user: tg_id=%s user=%s", tg_id, username)
+        log.info("Existing user %s (%s)", username, tg_id)
 
-    # ставим cookie
+    # Ставим куки
     response.set_cookie(
         "tg_id",
         str(tg_id),
         httponly=True,
-        secure=_IS_HTTPS,
-        samesite="none" if _IS_HTTPS else "lax",
+        secure=IS_HTTPS,
+        samesite="none" if IS_HTTPS else "lax",
         max_age=7 * 24 * 3600,
     )
     return user
 
 
-# ───────────────────────────  /me  ───────────────────────────
 @router.get("/me", response_model=UserSchema)
 async def me(
     tg_id: Optional[str] = Cookie(None, alias="tg_id"),
@@ -112,12 +94,25 @@ async def me(
     return user
 
 
-# ────────────────────────  /bot-register  ─────────────────────
 @router.post("/bot-register", response_model=UserSchema)
 async def bot_register(
-    payload: Dict[str, Any],
-    response: Response,
+    payload: Dict[str, Any] = Body(...),
+    response: Response = Response(),
     db: AsyncSession = Depends(db_session),
 ):
-    # переиспользуем логику /login
+    # Просто переиспользуем логику /login
     return await login(payload=payload, response=response, db=db)
+
+
+@router.post("/debug/auth")
+async def debug_auth(payload: Dict[str, Any] = Body(...)):
+    raw = payload.get("init_data")
+    if not raw:
+        return {"error": "No init_data provided"}
+
+    params = dict(parse_qsl(raw, keep_blank_values=True))
+    return {
+        "raw_init_data": raw,
+        "parsed_params": params,
+        "parsed_user": params.get("user"),
+    }
