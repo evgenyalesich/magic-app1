@@ -1,34 +1,39 @@
-# tests/conftest.py
+import asyncio, pytest, pytest_asyncio
+from httpx import AsyncClient, ASGITransport
+from sqlalchemy import text
 
-import pytest_asyncio
+from backend.main import app
+from backend.core.database import async_session
 
-from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+@pytest.fixture(scope="session")
+def event_loop():
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
 
-from backend.core.config import DATABASE_URL
-from backend.models.base import Base
-
-
-# Убираем "+asyncpg", чтобы создать синхронный движок
-SYNC_DATABASE_URL = DATABASE_URL.replace("+asyncpg", "")
-
-
+# ─── чистая сессия ─────────────────────────────────
 @pytest_asyncio.fixture
 async def async_session_fixture():
-    # 1) Синхронно создаём таблицы в базе, на которую указывает SYNC_DATABASE_URL
-    sync_engine = create_engine(SYNC_DATABASE_URL, echo=False)
-    Base.metadata.create_all(sync_engine)
-
-    # 2) Заводим асинхронный движок
-    async_engine = create_async_engine(DATABASE_URL, echo=False)
-    AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
-
-    # 3) Открываем асинхронную сессию
-    async with AsyncSessionLocal() as session:
+    async with async_session() as session:
         yield session
+        await session.rollback()
 
-    # 4) После теста закрываем асинхронный движок
-    await async_engine.dispose()
+# ─── авто-truncate перед каждым тестом ─────────────
+@pytest_asyncio.fixture(autouse=True)
+async def clean_db(async_session_fixture):
+    tables = (
+        "order_items", "orders",
+        "products", "categories",
+        "messages", "users",
+    )
+    for t in tables:
+        await async_session_fixture.execute(text(f"TRUNCATE {t} CASCADE"))
+    await async_session_fixture.commit()
 
-    # 5) Дропаем все таблицы (опционально)
-    Base.metadata.drop_all(sync_engine)
+# ─── httpx клиент ─────────────────────────────────
+@pytest_asyncio.fixture
+async def client():
+    transport = ASGITransport(app=app, raise_app_exceptions=True)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+

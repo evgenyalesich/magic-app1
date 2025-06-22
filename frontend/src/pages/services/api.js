@@ -1,5 +1,5 @@
 // Базовый URL вашего бэкенда
-const API_BASE_URL = "https://adventure-tie-inn-progressive.trycloudflare.com";
+const API_BASE_URL = "https://usc-hydrogen-counties-assisted.trycloudflare.com";
 
 // Утилита для запросов к API с обработкой ошибок и cookie
 async function request(path, options = {}) {

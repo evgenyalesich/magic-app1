@@ -1,0 +1,66 @@
+/* src/pages/admin/AdminMessagesPage.module.css */
+
+.container {
+  padding: 16px;
+  background: var(--color-bg);
+  min-height: calc(100vh - 64px);
+}
+
+.card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  margin-bottom: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  background: var(--color-surface);
+}
+
+.from {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.date {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.body {
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+}
+
+.deleteButton {
+  align-self: flex-end;
+  margin: 8px 16px 12px;
+  padding: 6px 12px;
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.deleteButton:hover {
+  background: #c0392b;
+}
+
+.placeholder {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}

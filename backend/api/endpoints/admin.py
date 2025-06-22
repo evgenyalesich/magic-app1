@@ -1,38 +1,59 @@
-# endpoints/api/admin.py
+"""
+ADMIN-panel API.
 
-from fastapi import APIRouter, Depends, HTTPException
+⚠️   Все маршруты защищены dependency-фильтром `admin_guard`.
+"""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import db_session, get_current_user
-from backend.services.crud import user_crud, order_crud, message_crud
+from ..deps import admin_guard, get_db
 from backend.schemas.admin import AdminStats
+from backend.services.crud import admin_crud
 
-router = APIRouter(tags=["Admin"])
+# импорт под-роутеров (без префиксов!)
+from .admin_products import router as admin_products_router
 
+# ──────────────────────────────────────────────
+# Главный роутер админки
+# ──────────────────────────────────────────────
+router = APIRouter(
+    prefix="/admin",
+    tags=["Admin"],
+    dependencies=[Depends(admin_guard)],  # применяем ко ВСЕМ вложенным маршрутам
+)
 
-@router.get("/", response_model=dict, summary="Admin Home")
-async def admin_home(user=Depends(get_current_user)):
-    if not user.is_admin:
-        raise HTTPException(status_code=403, detail="Доступ запрещён")
-    return {"message": f"Добро пожаловать в админ-панель, {user.username}"}
+# ──────────────────────────────────────────────
+# 1.  Приветственный энд-поинт
+# ──────────────────────────────────────────────
+@router.get("/", summary="Admin home")
+async def admin_home(admin=Depends(admin_guard)):
+    """Фронт запрашивает этот URL, чтобы убедиться, что токен = админ."""
+    return {"message": f"Добро пожаловать в админ-панель, {admin.username}!"}
 
-
-@router.get("/dashboard", response_model=AdminStats, summary="Get Admin Dashboard")
+# ──────────────────────────────────────────────
+# 2.  Дашборд
+# ──────────────────────────────────────────────
+@router.get(
+    "/dashboard",
+    response_model=AdminStats,
+    summary="Dashboard metrics",
+)
 async def get_admin_dashboard(
-    db: AsyncSession = Depends(db_session),
-    user=Depends(get_current_user),
-):
-    if not user.is_admin:
-        raise HTTPException(status_code=403, detail="Доступ запрещён")
+    db: AsyncSession = Depends(get_db),
+) -> AdminStats:
+    stats = await admin_crud.get_admin_stats(db)
+    return AdminStats(**stats)
 
-    total_users = await user_crud.count_users(db)
-    total_orders = await order_crud.count_orders(db)
-    total_revenue = (await order_crud.calculate_total_revenue(db)) or 0.0
-    unread_messages = await message_crud.count_unread_messages(db)
-
-    return AdminStats(
-        total_users=total_users,
-        total_orders=total_orders,
-        total_revenue=total_revenue,
-        unread_messages=unread_messages,
-    )
+# ──────────────────────────────────────────────
+# 3.  Тематические под-роутеры
+# ──────────────────────────────────────────────
+#    prefix задаём здесь, чтобы итоговый путь был
+#    /api/admin/products/*
+router.include_router(
+    admin_products_router,
+    prefix="/products",
+    tags=["Admin • Products"],
+)

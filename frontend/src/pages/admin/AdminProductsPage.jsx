@@ -1,11 +1,11 @@
-// src/pages/AdminProductsPage.jsx
+// src/pages/admin/AdminProductsPage.jsx
 import React, { useEffect, useState } from "react";
-import styles from "./Admin.module.css";
+import styles from "./AdminProductsPage.module.css";
 import {
   fetchAdminProducts,
   updateAdminProduct,
   deleteAdminProduct,
-} from "../api/admin";
+} from "../../api/admin";
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState([]);
@@ -27,9 +27,10 @@ export default function AdminProductsPage() {
     setLoading(true);
     setError("");
     try {
-      const data = await fetchAdminProducts(); // → GET /api/admin/products
+      const data = await fetchAdminProducts();
       setProducts(data);
-    } catch {
+    } catch (err) {
+      console.error(err);
       setError("Не удалось загрузить товары");
     } finally {
       setLoading(false);
@@ -45,24 +46,38 @@ export default function AdminProductsPage() {
       image_url: p.image_url,
     });
   }
+
   function cancelEdit() {
     setEditingId(null);
   }
+
   function handleChange(e) {
     const { name, value } = e.target;
     setFormData((f) => ({ ...f, [name]: value }));
   }
+
   async function saveEdit(id) {
-    await updateAdminProduct(id, formData); // → PUT /api/admin/products/:id
-    setEditingId(null);
-    await loadProducts();
-    alert("Товар обновлён");
+    try {
+      await updateAdminProduct(id, formData);
+      setEditingId(null);
+      await loadProducts();
+      alert("Товар успешно обновлён");
+    } catch (err) {
+      console.error(err);
+      alert("Не удалось сохранить изменения: " + err.message);
+    }
   }
+
   async function handleDelete(id) {
     if (!window.confirm("Точно удалить?")) return;
-    await deleteAdminProduct(id); // → DELETE /api/admin/products/:id
-    setProducts((ps) => ps.filter((p) => p.id !== id));
-    alert("Товар удалён");
+    try {
+      await deleteAdminProduct(id);
+      setProducts((ps) => ps.filter((p) => p.id !== id));
+      alert("Товар удалён");
+    } catch (err) {
+      console.error(err);
+      alert("Не удалось удалить товар: " + err.message);
+    }
   }
 
   if (loading) return <div className={styles.placeholder}>Загрузка…</div>;
@@ -115,9 +130,19 @@ export default function AdminProductsPage() {
               <p className={styles.description}>{p.description}</p>
               <div className={styles.footer}>
                 <span className={styles.price}>{p.price} ₽</span>
-                <div className={styles.buttonsVertical}>
-                  <button onClick={() => startEdit(p)}>Редактировать</button>
-                  <button onClick={() => handleDelete(p.id)}>Удалить</button>
+                <div className={styles.buttons}>
+                  <button
+                    className={styles.button}
+                    onClick={() => startEdit(p)}
+                  >
+                    Редактировать
+                  </button>
+                  <button
+                    className={styles.deleteButton}
+                    onClick={() => handleDelete(p.id)}
+                  >
+                    Удалить
+                  </button>
                 </div>
               </div>
             </>

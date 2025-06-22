@@ -1,5 +1,6 @@
 # backend/schemas/user.py
 from pydantic import BaseModel, ConfigDict
+from datetime import datetime
 
 
 class UserBase(BaseModel):
@@ -9,17 +10,25 @@ class UserBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class UserCreate(BaseModel):
-    username: str
-    telegram_id: int
+# ─────────────────── CREATE / UPDATE ───────────────────
+class UserCreate(UserBase):
+    username: str                   # username обязателен при создании
+
+
+class UserUpdate(BaseModel):
+    """Частичное обновление профиля (patch)."""
+    username: str | None = None
+    is_admin: bool | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class UserSchema(BaseModel):
+# ─────────────────── READ ───────────────────
+class UserSchema(UserBase):
     id: int
-    telegram_id: int
-    username: str
     is_admin: bool
+    first_seen: datetime | None = None
+    total_orders: int | None = None
+    total_spent: float | None = None
 
     model_config = ConfigDict(from_attributes=True)
