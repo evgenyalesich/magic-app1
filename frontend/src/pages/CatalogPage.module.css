@@ -104,3 +104,93 @@
   color: var(--color-text-secondary);
   font-size: 14px;
 }
+
+/* CatalogPage.module.css */
+
+.container {
+  padding: 16px;
+}
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.card {
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.cardImage {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+.cardContent {
+  padding: 12px;
+}
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+.button {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.placeholder {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+/* Модалка */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 320px;
+  width: 100%;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+.modalButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0;
+}
+.starsButton {
+  background: gold;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.frikassaButton {
+  background: #4a90e2;
+  color: #fff;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.closeModal {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+}

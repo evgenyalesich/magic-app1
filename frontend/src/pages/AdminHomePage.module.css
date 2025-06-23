@@ -1,0 +1,51 @@
+/* src/pages/AdminHomePage.module.css */
+
+.container {
+  padding: 20px;
+}
+
+.header {
+  background-color: #d6b58f;
+  color: #fff;
+  padding: 16px;
+  border-radius: 4px;
+  font-size: 1.5rem;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+
+.nav a {
+  color: #5a432c;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.nav a:hover {
+  background-color: rgba(214, 181, 143, 0.2);
+}
+
+@media (max-width: 480px) {
+  .header {
+    font-size: 1.25rem;
+    padding: 12px;
+  }
+  .nav {
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .nav a {
+    padding: 6px 10px;
+    font-size: 0.9rem;
+  }
+}

@@ -49,7 +49,7 @@ class Product(Base):
 
     # связи
     category    = relationship("Category", back_populates="products")
-
+    orders = relationship("Order", back_populates="product")
     # для удобства отладки / логов
     def __repr__(self) -> str:
         return f"<Product #{self.id} {self.title!r} ₽{self.price}>"

@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..deps import admin_guard, get_db
-from backend.schemas.admin import AdminStats
+from backend.schemas.admin import AdminMessageWithExtras
 from backend.services.crud import admin_crud
 
 # импорт под-роутеров (без префиксов!)
@@ -38,14 +38,14 @@ async def admin_home(admin=Depends(admin_guard)):
 # ──────────────────────────────────────────────
 @router.get(
     "/dashboard",
-    response_model=AdminStats,
+    response_model=AdminMessageWithExtras,
     summary="Dashboard metrics",
 )
 async def get_admin_dashboard(
     db: AsyncSession = Depends(get_db),
-) -> AdminStats:
+) -> AdminMessageWithExtras:
     stats = await admin_crud.get_admin_stats(db)
-    return AdminStats(**stats)
+    return AdminMessageWithExtras(**stats)
 
 # ──────────────────────────────────────────────
 # 3.  Тематические под-роутеры

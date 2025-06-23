@@ -7,7 +7,7 @@
 }
 
 .card {
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   margin-bottom: 16px;
@@ -16,17 +16,19 @@
   flex-direction: column;
 }
 
+/* header — кто и когда */
 .header {
   display: flex;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-divider);
   background: var(--color-surface);
 }
 
 .from {
   font-weight: 600;
   font-size: 0.95rem;
+  color: var(--color-text-primary);
 }
 
 .date {
@@ -34,6 +36,16 @@
   color: var(--color-text-secondary);
 }
 
+/* meta — доп. инфо про заказ */
+.meta {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-light);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+/* тело исходного сообщения */
 .body {
   padding: 12px 16px;
   font-size: 0.9rem;
@@ -41,11 +53,21 @@
   white-space: pre-wrap;
 }
 
+/* блок с ответом администратора */
+.reply {
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  background: var(--color-surface-light);
+  border-top: 1px solid var(--color-divider);
+  white-space: pre-wrap;
+}
+
 .deleteButton {
   align-self: flex-end;
   margin: 8px 16px 12px;
   padding: 6px 12px;
-  background: #e74c3c;
+  background: var(--color-error);
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -55,7 +77,7 @@
 }
 
 .deleteButton:hover {
-  background: #c0392b;
+  background: var(--color-error-hover);
 }
 
 .placeholder {

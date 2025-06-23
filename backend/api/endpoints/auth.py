@@ -12,6 +12,7 @@ from backend.core.config import settings
 from backend.schemas.user import UserCreate, UserSchema
 from backend.services.crud import user_crud
 
+
 log = logging.getLogger(__name__)
 router = APIRouter(tags=["Auth"])
 

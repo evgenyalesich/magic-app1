@@ -1,0 +1,41 @@
+.page {
+  max-width: 480px;
+  margin: 2rem auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.error {
+  color: #f44336;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-top: 1rem;
+  box-sizing: border-box;
+}
+
+.payBtn {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #4caf50;
+  color: #fff;
+  margin-top: 1.5rem;
+  transition: opacity 0.2s;
+}
+
+.payBtn:hover {
+  opacity: 0.9;
+}

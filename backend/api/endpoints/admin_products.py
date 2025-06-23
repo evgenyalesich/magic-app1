@@ -6,24 +6,17 @@ CRUD товаров (только для админов).
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import get_db
-from backend.schemas.product import (
-    ProductCreate,
-    ProductUpdate,
-    ProductOut,
-)
-from backend.schemas.category import CategoryCreate  # схема для категории
-from backend.services.crud import product_crud, category_crud  # импортируем оба CRUD
+from backend.schemas.product import ProductCreate, ProductUpdate, ProductOut
+from backend.schemas.category import CategoryCreate
+from backend.services.crud import product_crud, category_crud
 
-router = APIRouter()  # префикс берётся из admin.py
+router = APIRouter()
 
 
-# ─────────────────────────────────────────────
-# 1. Список товаров
-# ─────────────────────────────────────────────
 @router.get(
     "",
     response_model=list[ProductOut],
@@ -33,9 +26,6 @@ async def list_products(db: AsyncSession = Depends(get_db)):
     return await product_crud.get_multi(db)
 
 
-# ─────────────────────────────────────────────
-# 2. Создание товара (с автоматической категорией)
-# ─────────────────────────────────────────────
 @router.post(
     "",
     response_model=ProductOut,
@@ -46,21 +36,18 @@ async def create_product(
     payload: ProductCreate,
     db: AsyncSession = Depends(get_db),
 ):
-    # 1) Создаём новую категорию (имя можно взять из названия товара или константу)
+    # Автосоздаём категорию по названию товара
     category = await category_crud.create(
         db,
-        obj_in=CategoryCreate(name=payload.title)
+        obj_in=CategoryCreate(name=payload.title),
     )
-    # 2) Подготавливаем данные для товара, подставляя свежий category_id
+    # Вписываем её в данные для товара
     data = payload.dict()
     data["category_id"] = category.id
-    # 3) Создаём товар
+    # Создаём товар
     return await product_crud.create(db, obj_in=ProductCreate(**data))
 
 
-# ─────────────────────────────────────────────
-# 3. Получить один товар
-# ─────────────────────────────────────────────
 @router.get(
     "/{product_id}",
     response_model=ProductOut,
@@ -72,13 +59,13 @@ async def get_product(
 ):
     product = await product_crud.get(db, product_id)
     if not product:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail="Product not found",
+        )
     return product
 
 
-# ─────────────────────────────────────────────
-# 4. Обновление товара (с поддержкой смены категории)
-# ─────────────────────────────────────────────
 @router.put(
     "/{product_id}",
     response_model=ProductOut,
@@ -89,47 +76,54 @@ async def update_product(
     payload: ProductUpdate,
     db: AsyncSession = Depends(get_db),
 ):
-    # 1) Проверяем, что товар существует
+    # Проверяем, что товар есть
     existing = await product_crud.get(db, product_id)
     if not existing:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail="Product not found",
+        )
 
-    # 2) Собираем только те поля, что пришли в запросе
+    # Берём лишь те поля, что пришли в запросе
     update_data = payload.dict(exclude_unset=True)
 
-    # 3) Если меняем категорию — убедимся, что она есть
+    # Если хотят сменить категорию — проверяем её наличие
     if "category_id" in update_data:
         cat = await category_crud.get(db, update_data["category_id"])
         if not cat:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status.HTTP_400_BAD_REQUEST,
                 detail=f"Category with id={update_data['category_id']} not found",
             )
 
-    # 4) Применяем обновление по правильной сигнатуре CRUDBase.update
-    updated = await product_crud.update(
+    # Вызываем CRUD.update по id
+    return await product_crud.update(
         db,
         product_id,
         obj_in=update_data,
     )
-    return updated
 
 
-# ─────────────────────────────────────────────
-# 5. Удаление товара
-# ─────────────────────────────────────────────
 @router.delete(
     "/{product_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=dict[str, int],
+    status_code=status.HTTP_200_OK,
     summary="Удалить товар",
-    response_class=Response,  # Код 204 не должен содержать тела
 )
 async def delete_product(
     product_id: int,
     db: AsyncSession = Depends(get_db),
-) -> Response:
+) -> dict[str, int]:
+    # Проверяем, что товар есть
     existing = await product_crud.get(db, product_id)
     if not existing:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail="Product not found",
+        )
+
+    # Удаляем
     await product_crud.remove(db, product_id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    # Возвращаем { "id": product_id }, чтобы фронтенд точно знал, что прошло OK
+    return {"id": product_id}

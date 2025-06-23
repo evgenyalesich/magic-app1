@@ -1,34 +1,91 @@
 # backend/schemas/user.py
-from pydantic import BaseModel, ConfigDict
-from datetime import datetime
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing    import Optional
+from datetime  import datetime
+import re
 
+# Общая конфигурация для всех ORM-схем
+ORM_CONFIG = ConfigDict(from_attributes=True)
 
 class UserBase(BaseModel):
-    telegram_id: int
-    username: str | None = None
+    """
+    Базовые поля, общие и для e-mail регистрации, и для Telegram.
+    """
+    telegram_id: Optional[int] = None
+    username:    Optional[str] = None
+    email:       Optional[str] = None  # Changed from EmailStr to str
 
-    model_config = ConfigDict(from_attributes=True)
+    # Custom email validation without email-validator dependency
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        if v is None:
+            return v
+        # Simple regex pattern for email validation
+        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(pattern, v):
+            raise ValueError('Invalid email format')
+        return v
 
+    model_config = ORM_CONFIG
 
-# ─────────────────── CREATE / UPDATE ───────────────────
 class UserCreate(UserBase):
-    username: str                   # username обязателен при создании
-
+    """
+    Схема создания нового пользователя.
+    Для e-mail-регистрации обязательны email + password,
+    для Telegram — telegram_id (username/email по желанию).
+    """
+    password: Optional[str] = None
+    telegram_id: Optional[int] = Field(
+        None,
+        description="Telegram ID, если регистрация через бота"
+    )
+    model_config = ORM_CONFIG
 
 class UserUpdate(BaseModel):
-    """Частичное обновление профиля (patch)."""
-    username: str | None = None
-    is_admin: bool | None = None
+    """
+    Частичное обновление профиля (PATCH).
+    Можно менять любые поля кроме id.
+    """
+    username:    Optional[str] = None
+    email:       Optional[str] = None  # Changed from EmailStr to str
+    password:    Optional[str] = None
+    is_active:   Optional[bool] = None
+    is_admin:    Optional[bool] = None
+    stars:       Optional[int] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    # Custom email validation for update as well
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        if v is None:
+            return v
+        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(pattern, v):
+            raise ValueError('Invalid email format')
+        return v
 
+    model_config = ORM_CONFIG
 
-# ─────────────────── READ ───────────────────
 class UserSchema(UserBase):
-    id: int
-    is_admin: bool
-    first_seen: datetime | None = None
-    total_orders: int | None = None
-    total_spent: float | None = None
+    """
+    Схема возвращаемого профиля пользователя.
+    """
+    id:           int
+    is_active:    bool
+    is_admin:     bool
+    stars:        int
+    total_orders: int
+    total_spent:  float
+    first_seen:   Optional[datetime]
+    created_at:   datetime
+    updated_at:   Optional[datetime]
+    model_config = ORM_CONFIG
 
-    model_config = ConfigDict(from_attributes=True)
+class UserInDB(UserSchema):
+    """
+    Схема, которая хранится в БД (добавляется хэш пароля).
+    Не возвращается клиенту.
+    """
+    hashed_password: str
+    model_config = ORM_CONFIG

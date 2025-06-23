@@ -1,65 +1,134 @@
-// frontend/src/pages/OrderConfirmation.jsx
+// src/pages/OrderConfirmationPage.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { fetchOrder } from "../api/orders";
-import styles from "./OrderConfirmation.module.css";
+import { fetchOrder, payWithStars, payWithRubles } from "../api/orders";
+import styles from "./OrderConfirmationPage.module.css";
 
-export default function OrderConfirmation() {
+export default function OrderConfirmationPage() {
   const { orderId } = useParams();
   const navigate = useNavigate();
+
   const [order, setOrder] = useState(null);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [showOptions, setShowOptions] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    fetchOrder(orderId)
-      .then(setOrder)
-      .catch((err) => setError(err.message));
+    loadOrder();
   }, [orderId]);
 
-  if (error) {
-    return <p className={styles.error}>Ошибка: {error}</p>;
+  async function loadOrder() {
+    setLoading(true);
+    try {
+      const data = await fetchOrder(orderId);
+      setOrder(data);
+    } catch (err) {
+      console.error(err);
+      alert("Не удалось загрузить заказ");
+    } finally {
+      setLoading(false);
+      setShowOptions(false);
+      setProcessing(false);
+    }
   }
 
-  if (!order) {
-    return <p className={styles.loading}>Загрузка...</p>;
+  // стоимость в звёздах (примерный курс 1⭐ = 2.015₽)
+  const starsCost = order ? Math.ceil(order.product.price / 2.015) : 0;
+
+  async function handlePayStars() {
+    setProcessing(true);
+    try {
+      await payWithStars(orderId);
+      // перезагрузим и покажем кнопку «Перейти в чат»
+      await loadOrder();
+    } catch (err) {
+      console.error(err);
+      alert("Не удалось оплатить звёздами: " + err.message);
+    }
   }
 
-  const { product, status, created_at, id } = order;
+  async function handlePayRubles() {
+    setProcessing(true);
+    try {
+      const { payment_url } = await payWithRubles(orderId);
+      // редиректим на внешний шлюз
+      window.location.href = payment_url;
+    } catch (err) {
+      console.error(err);
+      alert("Не удалось оплатить рублями: " + err.message);
+      setProcessing(false);
+    }
+  }
+
+  function handleOpenChat() {
+    navigate(`/messages/${orderId}`);
+  }
+
+  if (loading) return <div className={styles.placeholder}>Загрузка…</div>;
+  if (!order) return <div className={styles.placeholder}>Заказ не найден</div>;
 
   return (
-    <div className={styles.page}>
-      <h1 className={styles.title}>Заказ №{id}</h1>
+    <div className={styles.container}>
+      <h1>Ваш заказ #{order.id}</h1>
 
-      <div className={styles.detailRow}>
-        <span className={styles.label}>Услуга: </span>
-        <span className={styles.value}>{product.name}</span>
+      <div className={styles.product}>
+        <img
+          src={order.product.image_url}
+          alt={order.product.title}
+          className={styles.image}
+        />
+        <div className={styles.details}>
+          <h2>{order.product.title}</h2>
+          <p>{order.product.description}</p>
+          <p>
+            <strong>Цена:</strong> {order.product.price} ₽ ({starsCost} ⭐)
+          </p>
+        </div>
       </div>
 
-      <div className={styles.detailRow}>
-        <span className={styles.label}>Описание: </span>
-        <span className={styles.value}>{product.description}</span>
-      </div>
+      <p>
+        <strong>Статус заказа:</strong> {order.status}
+      </p>
 
-      <div className={styles.detailRow}>
-        <span className={styles.label}>Цена: </span>
-        <span className={styles.value}>{product.price} ₽</span>
-      </div>
-
-      <div className={styles.detailRow}>
-        <span className={styles.label}>Дата: </span>
-        <span className={styles.value}>
-          {new Date(created_at).toLocaleString()}
-        </span>
-      </div>
-
-      <div className={styles.detailRow}>
-        <span className={styles.label}>Статус: </span>
-        <span className={styles.value}>{status}</span>
-      </div>
-
-      <button className={styles.button} onClick={() => navigate(`/chat/${id}`)}>
-        Написать в чат
-      </button>
+      {order.status === "pending" ? (
+        <>
+          {!showOptions ? (
+            <button
+              className={styles.payButton}
+              onClick={() => setShowOptions(true)}
+            >
+              Оплатить
+            </button>
+          ) : (
+            <div className={styles.options}>
+              <button
+                onClick={handlePayStars}
+                disabled={processing}
+                className={styles.starsButton}
+              >
+                ⭐ Оплатить {starsCost} ⭐
+              </button>
+              <button
+                onClick={handlePayRubles}
+                disabled={processing}
+                className={styles.rublesButton}
+              >
+                ₽ Оплатить {order.product.price} ₽
+              </button>
+              <button
+                onClick={() => setShowOptions(false)}
+                className={styles.cancelButton}
+              >
+                Отмена
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <button onClick={handleOpenChat} className={styles.chatButton}>
+          Перейти в чат
+        </button>
+      )}
     </div>
   );
 }

@@ -1,0 +1,60 @@
+/* контейнер всего приложения */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* шапка */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  background: #f9f4ec;
+  height: 60px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* кнопка «гамбургер» */
+.menuButton {
+  font-size: 1.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* логотип */
+.logo {
+  margin-left: 1rem;
+  text-decoration: none;
+  color: inherit;
+  font-size: 1.25rem;
+}
+
+/* пустышка, чтобы «толкать» остальное вправо */
+.spacer {
+  flex: 1;
+}
+
+/* бейдж «Admin» */
+.adminBadge {
+  background: #ccc;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  margin-right: 1rem;
+}
+
+/* кнопка корзины */
+.cartButton {
+  font-size: 1.5rem;
+  text-decoration: none;
+}
+
+/* основной контент */
+.main {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+  background: #fff;
+}

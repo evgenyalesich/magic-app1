@@ -46,12 +46,15 @@ export default function AdminMessagesPage() {
         messages.map((m) => (
           <div key={m.id} className={styles.card}>
             <div className={styles.header}>
-              <span className={styles.from}>{m.from_name}</span>
+              {/* === HERE === */}
+              <span className={styles.from}>
+                Заказ #{m.order_id} — {m.product_title} — {m.user_name}
+              </span>
               <span className={styles.date}>
                 {new Date(m.created_at).toLocaleString()}
               </span>
             </div>
-            <div className={styles.body}>{m.text}</div>
+            <div className={styles.body}>{m.content}</div>
             <button
               className={styles.deleteButton}
               onClick={() => handleDelete(m.id)}

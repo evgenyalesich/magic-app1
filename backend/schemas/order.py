@@ -1,41 +1,42 @@
 # backend/schemas/order.py
 from datetime import datetime
 from decimal import Decimal
-
 from pydantic import BaseModel, ConfigDict
 
+# Импортируем ProductOut под именем ProductSchema
+from backend.schemas.product import ProductSchema
+# Импортируем схему сообщения
+from backend.schemas.message import MessageSchema
 
-# ──────────────────────────────────────────────────────────────────────
-# Общая конфигурация для всех схем (чтение из ORM)
-# ──────────────────────────────────────────────────────────────────────
 ORM_CONFIG = ConfigDict(from_attributes=True)
 
-
-# ──────────────────────────────────────────────────────────────────────
-# Базовые поля заказа (используются в нескольких схемах)
-# ──────────────────────────────────────────────────────────────────────
 class OrderBase(BaseModel):
     product_id: int
     quantity: int
-    price: Decimal                     # используем Decimal для денег
+    price: Decimal
+    stars: Decimal = Decimal("0")
 
     model_config = ORM_CONFIG
 
-
-# ──────────────────────────────────────────────────────────────────────
-# DTO, приходящая при создании заказа (POST /orders/)
-# ──────────────────────────────────────────────────────────────────────
 class OrderCreate(OrderBase):
-    user_id: int                       # приходит из Telegram Web-App
+    user_id: int
 
+    model_config = ORM_CONFIG
 
-# ──────────────────────────────────────────────────────────────────────
-# DTO, возвращаемая API (GET /orders/, POST /orders/, …)
-# ──────────────────────────────────────────────────────────────────────
 class OrderRead(OrderBase):
     id: int
     user_id: int
     total: Decimal
+    status: str
     created_at: datetime
+
+    # вот тут вложенный товар
+    product: ProductSchema
+
+    model_config = ORM_CONFIG
+
+class OrderDetail(OrderRead):
+    # и здесь — помимо product ещё и переписка
+    messages: list[MessageSchema] = []
 
     model_config = ORM_CONFIG

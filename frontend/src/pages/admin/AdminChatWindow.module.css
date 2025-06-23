@@ -1,0 +1,50 @@
+/* src/pages/admin/AdminChatWindow.module.css */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 128px);
+  background: var(--color-bg);
+}
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+.fromUser {
+  max-width: 60%;
+  background: var(--color-surface);
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+.fromAdmin {
+  max-width: 60%;
+  background: var(--color-primary-light);
+  color: #fff;
+  margin-left: auto;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+.inputRow {
+  display: flex;
+  padding: 12px;
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-surface);
+}
+.input {
+  flex: 1;
+  resize: none;
+  padding: 8px;
+  border: 1px solid var(--color-divider);
+  border-radius: 4px;
+}
+.sendBtn {
+  margin-left: 8px;
+  padding: 8px 16px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}

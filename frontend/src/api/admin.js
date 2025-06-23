@@ -1,62 +1,145 @@
 // src/api/admin.js
 import api from "./index";
 
+/**
+ * Общий обработчик ошибок axios:
+ * — Если сервер вернул JSON с полем detail или message, бросаем его;
+ * — Иначе пробрасываем исходную ошибку.
+ */
+function handleApiError(err) {
+  if (err.response && err.response.data) {
+    const { detail, message } = err.response.data;
+    throw new Error(detail || message || `Ошибка ${err.response.status}`);
+  }
+  throw err;
+}
+
 /* ---------- Админ-панель ---------- */
 
-// Домашний экран (приветственный текст, версии и т.д.)
 export const getAdminHome = async () => {
-  const { data } = await api.get("/admin");
-  return data;
+  try {
+    const { data } = await api.get("/admin");
+    return data;
+  } catch (err) {
+    handleApiError(err);
+  }
 };
 
-// Общая статистика / метрики дашборда
 export const getAdminDashboard = async () => {
-  const { data } = await api.get("/admin/dashboard");
-  return data;
+  try {
+    const { data } = await api.get("/admin/dashboard");
+    return data;
+  } catch (err) {
+    handleApiError(err);
+  }
 };
 
-/* ---------- CRUD товаров для админа ---------- */
+/* ---------- CRUD товаров ---------- */
 
-// Список всех товаров
 export const fetchAdminProducts = async () => {
-  const { data } = await api.get("/admin/products");
-  return data;
+  try {
+    const { data } = await api.get("/admin/products");
+    return data;
+  } catch (err) {
+    handleApiError(err);
+  }
 };
 
-// Добавить новый товар
 export const createAdminProduct = async (payload) => {
-  const { data } = await api.post("/admin/products", payload);
-  return data;
+  try {
+    const { data } = await api.post("/admin/products", payload);
+    return data;
+  } catch (err) {
+    handleApiError(err);
+  }
 };
 
-// Обновить существующий товар
 export const updateAdminProduct = async (id, payload) => {
-  const { data } = await api.put(`/admin/products/${id}`, payload);
-  return data;
+  try {
+    const { data } = await api.put(`/admin/products/${id}`, payload);
+    return data;
+  } catch (err) {
+    handleApiError(err);
+  }
 };
 
-// Удалить товар
 export const deleteAdminProduct = async (id) => {
-  await api.delete(`/admin/products/${id}`);
+  try {
+    const { data } = await api.delete(`/admin/products/${id}`);
+    return data;
+  } catch (err) {
+    handleApiError(err);
+  }
 };
 
 /* ---------- Сообщения админа ---------- */
 
-// Список всех сообщений
+/**
+ * Подгружает СРАЗУ все сообщения со всех заказов (Pydantic-схема AdminMessageWithExtras).
+ */
 export const fetchAdminMessages = async () => {
-  const { data } = await api.get("/admin/messages");
-  return data;
+  try {
+    const { data } = await api.get("/admin/messages/");
+    return data; // [ { id, order_id, content, reply, is_read, created_at, replied_at, user_name, product_title }, ... ]
+  } catch (err) {
+    handleApiError(err);
+  }
 };
 
-// Удалить сообщение по ID
-export const deleteAdminMessage = async (id) => {
-  await api.delete(`/admin/messages/${id}`);
+/**
+ * Список чатов: группировка по order_id + самое свежее сообщение из каждого.
+ */
+
+export const fetchAdminChats = async () => {
+  const msgs = await fetchAdminMessages(); // [{ order_id, product_title, created_at, ... }, ...]
+  const byOrder = {}; // { [orderId]: { order_id, product: {title}, last_message } }
+
+  msgs.forEach((m) => {
+    const key = String(m.order_id);
+    const prev = byOrder[key];
+
+    // если чат ещё не заведен или текущее сообщение новее предыдущего — перезаписываем
+    if (
+      !prev ||
+      new Date(prev.last_message.created_at) < new Date(m.created_at)
+    ) {
+      byOrder[key] = {
+        order_id: m.order_id,
+        product: { title: m.product_title },
+        last_message: m,
+      };
+    }
+  });
+
+  return Object.values(byOrder);
+};
+/**
+ * История переписки по одному заказу — просто фильтруем уже загруженный набор.
+ */
+export const fetchAdminChat = async (orderId) => {
+  const msgs = await fetchAdminMessages();
+  return msgs.filter((m) => String(m.order_id) === String(orderId));
 };
 
-/* ---------- Отчёт / Статистика ---------- */
+/**
+ * Отправить новое сообщение админом в конкретный заказ.
+ */
+export const sendAdminMessage = async (orderId, content) => {
+  try {
+    const { data } = await api.post(`/admin/messages/${orderId}`, { content });
+    return data; // возвращается единичное MessageSchema
+  } catch (err) {
+    handleApiError(err);
+  }
+};
 
-// Получить данные отчёта
+/* ---------- Отчёты ---------- */
+
 export const fetchAdminReport = async () => {
-  const { data } = await api.get("/admin/report");
-  return data;
+  try {
+    const { data } = await api.get("/admin/report");
+    return data;
+  } catch (err) {
+    handleApiError(err);
+  }
 };

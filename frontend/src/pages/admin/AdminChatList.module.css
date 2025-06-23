@@ -1,0 +1,45 @@
+/* src/pages/admin/AdminChatList.module.css */
+.container {
+  padding: 16px;
+  background: var(--color-bg);
+}
+.chatCard {
+  background: var(--color-surface);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.chatCard:hover {
+  background: var(--color-surface-hover);
+}
+.top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.order {
+  font-weight: 600;
+}
+.time {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+.bottom {
+  display: flex;
+  justify-content: space-between;
+}
+.product {
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+}
+.snippet {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+.placeholder {
+  padding: 40px;
+  text-align: center;
+  color: var(--color-text-secondary);
+}

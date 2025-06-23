@@ -1,34 +1,43 @@
 // src/App.jsx
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   BrowserRouter,
   Routes,
   Route,
   Navigate,
   useNavigate,
+  Link,
 } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { useMe } from "./api/auth";
 import LoginPage from "./pages/LoginPage";
-import Home from "./pages/Home";
-import AdminLayout from "./pages/AdminLayout";
+import CatalogPage from "./pages/CatalogPage";
+import ChatListPage from "./pages/ChatListPage";
+import ChatWindowPage from "./pages/ChatWindowPage";
+import PaymentPage from "./pages/PaymentPage";
+import StarsPaymentPage from "./pages/StarsPaymentPage";
 
-// Admin sub-pages
+// Админка
+import AdminLayout from "./pages/AdminLayout";
 import AdminProductsPage from "./pages/admin/AdminProductsPage";
 import NewProductPage from "./pages/admin/NewProductPage";
-import AdminMessagesPage from "./pages/admin/AdminMessagesPage";
+import AdminChatPage from "./pages/admin/AdminChatPage"; // ← новый импорт
 import AdminReportPage from "./pages/admin/AdminReportPage";
+import AdminChatListPage from "./pages/admin/AdminChatList";
 
+import SideMenu from "./components/SideMenu";
 import { CartButton } from "./components/CartBadge";
+
 import styles from "./App.module.css";
 import "./index.css";
 
 function Shell() {
   const { data: me, isLoading } = useMe();
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // при заходе на /admin сразу редиректим на /admin/products
+  // Если админ на /admin → сразу на /admin/products
   useEffect(() => {
     if (!isLoading && me?.is_admin && window.location.pathname === "/admin") {
       navigate("products", { replace: true });
@@ -41,45 +50,58 @@ function Shell() {
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
-        <a href="/" className={styles.logo}>
+        <button
+          className={styles.menuButton}
+          onClick={() => setMenuOpen((o) => !o)}
+          aria-label="Открыть меню"
+        >
+          ☰
+        </button>
+        <Link to="/" className={styles.logo}>
           🔮 Magic App
-        </a>
+        </Link>
         <div className={styles.controls}>
           {me.is_admin && (
-            <a href="/admin" className={styles.adminLink}>
+            <Link to="/admin" className={styles.adminLink}>
               Admin
-            </a>
+            </Link>
           )}
           <CartButton />
         </div>
       </header>
 
-      <main className={styles.main}>
-        <Routes>
-          {/* Пользовательская главная */}
-          <Route path="/" element={<Home />} />
+      <SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
 
-          {/* Админская секция */}
+      <main className={styles.main} onClick={() => setMenuOpen(false)}>
+        <Routes>
+          {/* корень → каталог */}
+          <Route path="/" element={<Navigate to="services" replace />} />
+
+          {/* публичная часть */}
+          <Route path="services" element={<CatalogPage />} />
+          <Route path="messages" element={<ChatListPage />} />
+          <Route path="messages/:orderId" element={<ChatWindowPage />} />
+
+          {/* админка */}
           {me.is_admin && (
             <Route path="admin/*" element={<AdminLayout />}>
-              {/* /admin → сразу на список */}
               <Route index element={<Navigate to="products" replace />} />
-
-              {/* /admin/products */}
               <Route path="products" element={<AdminProductsPage />} />
-
-              {/* /admin/products/new */}
               <Route path="products/new" element={<NewProductPage />} />
-
-              {/* /admin/messages */}
-              <Route path="messages" element={<AdminMessagesPage />} />
-
-              {/* /admin/report */}
+              {/* список всех чатов */}
+              <Route path="messages" element={<AdminChatListPage />} />
+              <Route path="messages/:orderId" element={<AdminChatPage />} />
+              {/* детальный чат по заказу */}
+              <Route
+                path="messages/:orderId"
+                element={<AdminChatPage />}
+              />{" "}
+              {/* ← добавлено */}
               <Route path="report" element={<AdminReportPage />} />
             </Route>
           )}
 
-          {/* всё остальное — на главную */}
+          {/* любой прочий URL → ← каталог */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
@@ -112,13 +134,15 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        {/* перенаправление из телеги */}
         <InitDataRedirector />
-
-        {/* собственно всё остальное */}
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/*" element={<Shell />} />
+          <Route path="payments/:productId" element={<PaymentPage />} />
+          <Route
+            path="payments/stars/:productId"
+            element={<StarsPaymentPage />}
+          />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
