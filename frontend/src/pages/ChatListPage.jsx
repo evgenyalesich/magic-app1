@@ -1,70 +1,86 @@
+// src/pages/ChatListPage.jsx
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { fetchUserChats } from "../api/orders";
+import { useNavigate } from "react-router-dom";
 
+import { fetchUserChats, fetchMessages } from "../api/messages";
 import styles from "./ChatListPage.module.css";
 
 export default function ChatListPage() {
-  const [chats, setChats] = useState([]); // будет массив объектов вида MessageSchema
+  /* ───── state ───── */
+  const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const nav = useNavigate();
+
+  /* ───── первый запрос ───── */
   useEffect(() => {
     (async () => {
       try {
-        const msgs = await fetchUserChats();
+        // 1) получаем список заказов
+        const base = await fetchUserChats();
 
-        // сгруппируем по order_id, выберем для каждого чата самое свежее сообщение
-        const lastByOrder = msgs.reduce((acc, msg) => {
-          const key = msg.order_id;
-          if (
-            !acc[key] ||
-            new Date(msg.created_at) > new Date(acc[key].created_at)
-          ) {
-            acc[key] = msg;
-          }
-          return acc;
-        }, {});
+        // 2) если у заказа нет last_message — докачиваем только одно последнее
+        const full = await Promise.all(
+          base.map(async (c) => {
+            if (c.last_message) return c; // всё ок
+            const msgs = await fetchMessages(c.order_id);
+            return { ...c, last_message: msgs.at(-1) }; // может быть undefined
+          }),
+        );
 
-        // приведём к списку чатов
-        const list = Object.values(lastByOrder).map((msg) => ({
-          orderId: msg.order_id,
-          lastMessage: msg.content,
-          status: msg.status, // если back отдаёт status заказа вместе с message
-          updatedAt: msg.created_at,
-        }));
-
-        setChats(list);
-      } catch {
-        setError("Не удалось загрузить чаты");
+        setChats(full);
+      } catch (e) {
+        setError(e.message || "Не удалось загрузить чаты");
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
+  /* ───── состояния UI ───── */
   if (loading) return <div className={styles.placeholder}>Загрузка…</div>;
   if (error) return <div className={styles.placeholder}>{error}</div>;
   if (!chats.length)
     return <div className={styles.placeholder}>Чатов пока нет</div>;
 
+  /* ───── основной рендер ───── */
   return (
     <div className={styles.container}>
-      {chats.map((chat) => (
-        <Link
-          key={chat.orderId}
-          to={`/messages/${chat.orderId}`}
-          className={styles.chatItem}
-        >
-          <div className={styles.chatInfo}>
-            <div className={styles.title}>Заказ #{chat.orderId}</div>
-            <div className={styles.subtitle}>
-              {chat.status === "pending" ? "Ожидает оплаты" : "Переписка"}
+      {chats.map(({ order_id, product, last_message }) => {
+        /* название товара */
+        const title = product?.title || "Неизвестный товар";
+
+        /* читаемая дата последнего сообщения */
+        const createdAt = last_message?.created_at
+          ? new Date(last_message.created_at).toLocaleString()
+          : "—";
+
+        /* превью (80 симв.) или fallback */
+        const snippet = last_message?.content?.trim()
+          ? last_message.content.slice(0, 80) +
+            (last_message.content.length > 80 ? "…" : "")
+          : "Сообщений пока нет";
+
+        return (
+          <div
+            key={order_id}
+            role="button"
+            tabIndex={0}
+            className={styles.card}
+            onClick={() => nav(`/messages/${order_id}`)}
+            onKeyDown={(e) => e.key === "Enter" && nav(`/messages/${order_id}`)}
+          >
+            <div className={styles.top}>
+              <span className={styles.order}>Заказ&nbsp;#{order_id}</span>
+              <span className={styles.time}>{createdAt}</span>
             </div>
-            <div className={styles.preview}>{chat.lastMessage}</div>
+
+            <div className={styles.title}>{title}</div>
+            <div className={styles.snippet}>{snippet}</div>
           </div>
-        </Link>
-      ))}
+        );
+      })}
     </div>
   );
 }

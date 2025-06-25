@@ -1,47 +1,54 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import toast from "react-hot-toast";
+
 import { apiClient } from "../api/client";
+import { initPayment } from "../api/payments";
+
 import styles from "./StarsPaymentPage.module.css";
 
 export default function StarsPaymentPage() {
   const { productId } = useParams();
-  const [stars, setStars] = useState("");
-  const [error, setError] = useState("");
   const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
 
   const handleStarsPay = async () => {
-    if (!stars) return setError("Введите количество звёзд");
+    if (busy) return;
     try {
-      // сначала создаём заказ (по тому же API)
-      const { data: order } = await apiClient.post("/payments", {
-        product_id: +productId,
-        quantity: 1,
-      });
-      // потом списываем звёзды
-      await apiClient.post("/payments/stars", {
-        order_id: order.id,
-        stars: +stars,
-      });
-      // и сразу в чат
-      navigate(`/chats/${order.id}`);
-    } catch {
-      setError("Не удалось списать звёзды");
+      setBusy(true);
+
+      /* 1. создаём заказ и получаем invoice */
+      const { order_id, invoice } = await initPayment(+productId);
+
+      /* 2. открываем окно оплаты у Telegram */
+      await window.Telegram.WebApp.openInvoice(invoice);
+
+      /* 3. простейший polling – смотрим, когда заказ станет paid */
+      const poll = setInterval(async () => {
+        const { data: order } = await apiClient.get(`/orders/${order_id}`);
+        if (order.status === "paid") {
+          clearInterval(poll);
+          toast.success("Оплачено звёздами!");
+          navigate(`/chats/${order_id}`);
+        }
+      }, 3000);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
     <div className={styles.page}>
       <h1>Оплата звёздами</h1>
-      {error && <div className={styles.error}>{error}</div>}
-      <input
-        type="number"
-        value={stars}
-        onChange={(e) => setStars(e.target.value)}
-        placeholder="Сколько звёзд потратить?"
-        className={styles.input}
-      />
-      <button onClick={handleStarsPay} className={styles.payBtn}>
-        Списать звёзды
+
+      <button
+        onClick={handleStarsPay}
+        className={styles.payBtn}
+        disabled={busy}
+      >
+        {busy ? "Ожидаем оплату…" : "Оплатить через ⭐ Telegram"}
       </button>
     </div>
   );
