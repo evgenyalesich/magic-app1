@@ -1,0 +1,354 @@
+/* ────────────────────────────────────────────────
+   0. Design tokens
+──────────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --bg: #f7f6fd;
+  --card-bg: #ffffff;
+  --overlay: rgba(0, 0, 0, 0.45);
+
+  /* Shadows */
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 3px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+
+  /* Typography */
+  --font-base: 400 15px/1.5 "Inter", system-ui, sans-serif;
+  --text: #262739;
+  --text-secondary: #4a3a5c;
+  --text-muted: #85879a;
+  --text-inverse: #ffffff;
+
+  /* Accent */
+  --accent: #c3adff;
+  --accent-dark: #b29afb;
+  --accent-light: #efeaff;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-medium: 0.25s ease;
+  --transition-slow: 0.4s ease;
+}
+
+/* ────────────────────────────────────────────────
+   1. Global reset & typography
+──────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font: var(--font-base);
+  background: var(--bg);
+  color: var(--text);
+  overscroll-behavior: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0 0 var(--space-sm) 0;
+  font-weight: 600;
+  color: var(--text);
+}
+
+p {
+  margin: 0 0 var(--space-md) 0;
+  line-height: 1.6;
+}
+
+a {
+  color: var(--accent-dark);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+a:hover {
+  color: var(--accent);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-light);
+  border-radius: var(--radius-sm);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ────────────────────────────────────────────────
+   2. Layout shell
+──────────────────────────────────────────────── */
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ────────────────────────────────────────────────
+   3. Header / topbar
+──────────────────────────────────────────────── */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: grid;
+  grid-template-columns: 60px 1fr 60px;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-md);
+}
+
+/* burger button */
+.burger {
+  grid-column: 1;
+  justify-self: start;
+  width: 40px;
+  height: 40px;
+  background: var(--accent-light);
+  border: none;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+.burger:hover {
+  background: var(--accent);
+  transform: scale(1.05);
+}
+
+/* centered logo/text */
+.logo {
+  grid-column: 2;
+  justify-self: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* admin badge */
+.adminTag {
+  grid-column: 3;
+  justify-self: end;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--accent-light);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* ────────────────────────────────────────────────
+   4. Side-menu (slide-in)
+──────────────────────────────────────────────── */
+.sideOverlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-medium);
+}
+.sideOverlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sideMenu {
+  position: fixed;
+  top: 0;
+  left: -280px;
+  width: 260px;
+  height: 100%;
+  padding: var(--space-lg) var(--space-md);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-lg);
+  transition: transform var(--transition-medium);
+  overflow-y: auto;
+}
+.sideMenu.open {
+  transform: translateX(280px);
+}
+
+.sideMenu nav a {
+  display: block;
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-sm);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-weight: 500;
+  transition: background var(--transition-fast);
+}
+.sideMenu nav a:hover {
+  background: var(--accent-light);
+}
+
+/* ────────────────────────────────────────────────
+   5. Main content area
+──────────────────────────────────────────────── */
+.main {
+  flex: 1;
+  padding: var(--space-lg);
+}
+
+/* ────────────────────────────────────────────────
+   6. Cards & lists
+──────────────────────────────────────────────── */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition:
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.list li + li {
+  margin-top: var(--space-md);
+}
+
+/* ────────────────────────────────────────────────
+   7. Buttons & forms
+──────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--text-inverse);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    opacity var(--transition-fast);
+}
+.btn:hover:not(:disabled) {
+  background: var(--accent-dark);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+  border: 1px solid var(--accent-light);
+  border-radius: var(--radius-sm);
+  font: var(--font-base);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+/* ────────────────────────────────────────────────
+   8. Tables & data
+──────────────────────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--space-lg);
+}
+th,
+td {
+  padding: var(--space-sm);
+  border-bottom: 1px solid var(--accent-light);
+}
+th {
+  text-align: left;
+  background: var(--accent-light);
+  font-weight: 600;
+}
+
+/* ────────────────────────────────────────────────
+   9. Utility classes
+──────────────────────────────────────────────── */
+.flex {
+  display: flex !important;
+}
+.justify-between {
+  justify-content: space-between !important;
+}
+.items-center {
+  align-items: center !important;
+}
+.hidden {
+  display: none !important;
+}
+
+/* ────────────────────────────────────────────────
+  10. Responsive tweaks
+──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .header {
+    grid-template-columns: 50px 1fr 50px;
+    padding: var(--space-sm) var(--space-md);
+  }
+  .burger {
+    width: 36px;
+    height: 36px;
+  }
+  .logo {
+    font-size: 1.2rem;
+  }
+  .sideMenu {
+    width: 220px;
+    left: -220px;
+  }
+  .sideMenu.open {
+    transform: translateX(220px);
+  }
+}

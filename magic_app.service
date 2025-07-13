@@ -1,0 +1,20 @@
+[Unit]
+Description=Magic App Runner (FastAPI + Bot + Frontend)
+After=network.target
+
+[Service]
+Type=simple
+User=evgeny
+WorkingDirectory=/home/evgeny/magic_app
+ExecStart=/home/evgeny/magic_app/magic_app
+Restart=always
+
+# Берём переменные окружения из вашего .env
+EnvironmentFile=/home/evgeny/magic_app/.env
+
+# При необходимости даём бинарнику право слушать порты <1024
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target

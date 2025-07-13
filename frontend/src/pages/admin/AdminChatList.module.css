@@ -1,0 +1,241 @@
+/* src/pages/admin/AdminChatList.module.css */
+
+/* Переменные (примерные значения, подстрой под свой дизайн) */
+:root {
+  --bg: #f8f7fc;
+  --card-bg: #ffffff;
+  --accent: #8b7dc4;
+  --accent-light: #e8e5ff;
+  --accent-hover: #a594f7;
+  --text-main: #2d2d2d;
+  --text-secondary: #666;
+  --text-muted: #999;
+  --text-light: #bbb;
+  --radius: 16px;
+  --shadow-s: 0 2px 8px rgba(139, 125, 196, 0.1);
+  --shadow-m: 0 8px 24px rgba(139, 125, 196, 0.15);
+}
+
+/* ───────── Контейнер ───────── */
+.container {
+  padding: 16px;
+  background: var(--bg);
+  min-height: calc(100vh - 64px);
+}
+
+/* ───────── Заголовок ───────── */
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-main);
+}
+
+.count {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* ───────── Список чатов ───────── */
+.chatList {
+  display: grid;
+  gap: 12px;
+}
+
+/* ───────── Карточка чата ───────── */
+.chatCard {
+  background: var(--card-bg);
+  padding: 16px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-s);
+  border: 1px solid var(--accent-light);
+  position: relative;
+  overflow: hidden;
+}
+
+.chatCard:hover {
+  background: var(--accent-light);
+  box-shadow: var(--shadow-m);
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.chatCard:active {
+  transform: translateY(0);
+}
+
+/* ───────── Левый индикатор ───────── */
+.chatCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleY(0);
+  transition: transform 0.2s ease;
+}
+
+.chatCard:hover::before {
+  transform: scaleY(1);
+}
+
+/* ───────── Верхняя строка ───────── */
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.orderInfo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.orderNumber {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-main);
+}
+
+/* бейдж непрочитанных */
+.unreadBadge {
+  background: #ff5722;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* метка времени */
+.timestamp {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: var(--card-bg);
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--accent-light);
+}
+
+/* ───────── Содержимое ───────── */
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.productTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.productTitle::before {
+  content: "🛍";
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+.messageSnippet {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(174, 139, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 8px;
+  max-width: 100%;
+}
+
+/* ───────── Подвал карточки ───────── */
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.customerLabel {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.arrow {
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+/* ───────── Плейсхолдер ───────── */
+.placeholder {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 2px dashed var(--accent-light);
+  margin: 20px 0;
+}
+
+.placeholder::before {
+  content: "💬";
+  display: block;
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+/* ───────── Адаптивность ───────── */
+@media (max-width: 768px) {
+  .container {
+    padding: 12px;
+  }
+
+  .chatCard {
+    padding: 12px;
+  }
+
+  .cardContent {
+    gap: 4px;
+  }
+
+  .messageSnippet {
+    font-size: 0.8rem;
+    padding: 3px 6px;
+  }
+}
+
+.deleteChatBtn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.deleteChatBtn:hover {
+  background: #c0392b;
+}

@@ -1,0 +1,32 @@
+/* src/pages/AdminLayout.module.css */
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.header {
+  padding: 16px;
+  background: var(--color-primary);
+  color: white;
+}
+.toolbar {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: var(--color-bg-secondary);
+}
+.toolbarButton {
+  padding: 8px 16px;
+  background: var(--color-bg);
+  color: #333;
+  text-decoration: none;
+  border-radius: 4px;
+}
+.toolbarButton.active {
+  background: var(--color-accent);
+  color: #fff;
+}
+.content {
+  flex: 1;
+  overflow-y: auto;
+}

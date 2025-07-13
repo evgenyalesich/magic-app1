@@ -1,0 +1,230 @@
+/* src/pages/admin/AdminMessagesPage.module.css */
+.container {
+  padding: 16px;
+  background: var(--bg);
+  min-height: calc(100vh - 64px);
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-m);
+  margin-bottom: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--accent-light);
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-l);
+  transform: translateY(-1px);
+}
+
+/* header — кто и когда */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--accent-light);
+  background: linear-gradient(
+    135deg,
+    var(--card-bg) 0%,
+    var(--accent-light) 100%
+  );
+}
+
+.from {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.from::before {
+  content: "👤";
+  font-size: 16px;
+}
+
+.date {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: var(--card-bg);
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--accent-light);
+}
+
+/* meta — доп. инфо про заказ */
+.meta {
+  padding: 12px 20px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  background: var(--accent-light);
+  border-bottom: 1px solid var(--accent-light);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.meta::before {
+  content: "📋";
+  font-size: 14px;
+}
+
+/* тело исходного сообщения */
+.body {
+  padding: 16px 20px;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  white-space: pre-wrap;
+  line-height: 1.5;
+  background: var(--card-bg);
+}
+
+/* блок с ответом администратора */
+.reply {
+  padding: 16px 20px;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  background: linear-gradient(
+    135deg,
+    var(--accent-light) 0%,
+    rgba(174, 139, 255, 0.1) 100%
+  );
+  border-top: 2px solid var(--accent);
+  white-space: pre-wrap;
+  line-height: 1.5;
+  position: relative;
+}
+
+.reply::before {
+  content: "💬 Ответ администратора:";
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent-hover);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.deleteButton {
+  align-self: flex-end;
+  margin: 12px 20px 16px;
+  padding: 8px 16px;
+  background: #ff6b6b;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.deleteButton::before {
+  content: "🗑";
+  font-size: 12px;
+}
+
+.deleteButton:hover {
+  background: #ff5252;
+  transform: translateY(-1px);
+}
+
+.deleteButton:active {
+  transform: translateY(0);
+}
+
+.placeholder {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 1rem;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  margin: 20px 0;
+  border: 2px dashed var(--accent-light);
+}
+
+.placeholder::before {
+  content: "📭";
+  display: block;
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+/* Дополнительные стили для улучшения */
+.messageCount {
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
+/* Статус сообщения */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.status.new {
+  background: #4caf50;
+  color: #fff;
+}
+
+.status.replied {
+  background: var(--accent);
+  color: #fff;
+}
+
+.status.read {
+  background: var(--text-muted);
+  color: #fff;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .container {
+    padding: 12px;
+  }
+
+  .header {
+    padding: 12px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .body,
+  .reply {
+    padding: 12px 16px;
+  }
+
+  .meta {
+    padding: 10px 16px;
+  }
+}

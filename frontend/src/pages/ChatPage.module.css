@@ -1,0 +1,105 @@
+/* ---------- каркас страницы ---------- */
+.page {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ---------- список сообщений ---------- */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: var(--space-md);
+}
+
+/* один «контейнер» сообщения */
+.message {
+  display: flex;
+  flex-direction: column;
+  margin: 0.6rem 0;
+  max-width: 80%;
+}
+
+.own {
+  align-self: flex-end;
+} /* мои сообщения — справа  */
+.user {
+  align-self: flex-start;
+} /* чужие — слева            */
+.admin {
+  align-self: flex-start;
+} /* админ — слева (можно right) */
+
+/* ---------- пузырь текста ---------- */
+.messageText {
+  padding: 0.65rem 1rem;
+  border-radius: 16px;
+  background: #fff;
+  word-break: break-word;
+}
+
+.own .messageText {
+  background: #dcf8c6;
+}
+.admin .messageText {
+  background: #fff9c4;
+  border: 1px solid #ffe082;
+}
+
+/* полупрозрачный «pending» пока сервер не подтвердил */
+.pending {
+  opacity: 0.6;
+}
+
+/* ---------- строка времени + бейдж ---------- */
+.messageTime {
+  font-size: 0.74rem;
+  color: #888;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.adminBadge {
+  font-weight: 600;
+  color: #ff9800;
+}
+
+/* ---------- разделитель блоков ---------- */
+.divider {
+  text-align: center;
+  font-size: 0.74rem;
+  color: #777;
+  margin: 1.2rem 0 0.4rem;
+}
+
+/* ---------- поле ввода ---------- */
+.inputRow {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.input {
+  flex: 1;
+  padding: var(--space-sm);
+  border: 1px solid var(--color-secondary);
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.sendButton {
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-primary);
+  color: var(--color-surface);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.sendButton:hover {
+  background-color: var(--color-secondary);
+}

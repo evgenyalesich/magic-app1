@@ -1,0 +1,42 @@
+.page {
+  max-width: 480px;
+  margin: 2rem auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.placeholder {
+  text-align: center;
+  margin-top: 2rem;
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.payBtn,
+.starsBtn {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: opacity 0.2s;
+}
+
+.payBtn:hover,
+.starsBtn:hover {
+  opacity: 0.9;
+}
+
+.payBtn {
+  background-color: #4caf50;
+  color: #fff;
+}
+
+.starsBtn {
+  background-color: #2196f3;
+  color: #fff;
+}

@@ -1,7 +1,9 @@
-import axios from 'axios';
+// src/api/index.js
+import axios from "axios";
 
 const api = axios.create({
-  baseURL: 'https://jacket-days-easter-bald.trycloudflare.com/api', // адрес бекенда
+  baseURL: "/api",
+  withCredentials: true,
 });
 
 export default api;
