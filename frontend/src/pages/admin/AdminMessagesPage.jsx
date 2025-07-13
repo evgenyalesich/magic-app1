@@ -1,6 +1,8 @@
 // src/pages/admin/AdminMessagesPage.jsx
 import React, { useEffect, useState } from "react";
 import styles from "./AdminMessagesPage.module.css";
+// 1. Импортируем хук useMe
+import { useMe } from "../../api/auth";
 import { fetchAdminMessages, deleteAdminMessage } from "../../api/admin";
 
 export default function AdminMessagesPage() {
@@ -8,12 +10,11 @@ export default function AdminMessagesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    loadMessages();
-  }, []);
+  // 2. Получаем статус авторизации
+  const { isSuccess: isUserReady, isLoading: isUserLoading } = useMe();
 
   async function loadMessages() {
-    setLoading(true);
+    // setLoading(true) перенесено в useEffect, чтобы не было лишних состояний
     setError("");
     try {
       const data = await fetchAdminMessages();
@@ -26,6 +27,13 @@ export default function AdminMessagesPage() {
     }
   }
 
+  // 3. Запускаем загрузку только после проверки пользователя
+  useEffect(() => {
+    if (isUserReady) {
+      loadMessages();
+    }
+  }, [isUserReady]); // 4. Добавляем зависимость
+
   async function handleDelete(id) {
     if (!window.confirm("Точно удалить сообщение?")) return;
     try {
@@ -37,7 +45,11 @@ export default function AdminMessagesPage() {
     }
   }
 
-  if (loading) return <div className={styles.placeholder}>Загрузка…</div>;
+  // 5. Добавляем UI-состояния для проверки и загрузки
+  if (isUserLoading)
+    return <div className={styles.placeholder}>Проверка доступа…</div>;
+  if (loading)
+    return <div className={styles.placeholder}>Загрузка сообщений…</div>;
   if (error) return <div className={styles.placeholder}>{error}</div>;
 
   return (
@@ -46,7 +58,6 @@ export default function AdminMessagesPage() {
         messages.map((m) => (
           <div key={m.id} className={styles.card}>
             <div className={styles.header}>
-              {/* === HERE === */}
               <span className={styles.from}>
                 Заказ #{m.order_id} — {m.product_title} — {m.user_name}
               </span>

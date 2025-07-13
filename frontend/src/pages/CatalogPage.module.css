@@ -1,196 +1,639 @@
-/* src/pages/CatalogPage.module.css */
+/* ========= PALETTE & TOKENS ========================================= */
+:root {
+  --bg: #faf8ff;
+  --card-bg: #ffffff;
 
-.container {
-  padding: 16px; /* общий отступ */
-  background: var(--color-bg); /* фон страницы */
-  overflow-y: auto; /* вертикальный скролл */
+  --accent: #ae8bff;
+  --accent-dark: #9b74ff;
+  --accent-light: #efeaff;
+
+  --text-main: #222;
+  --text-muted: #6f6f6f;
+  --star: #ffc74d;
+
+  --radius: 16px;
+  --shadow-s: 0 2px 6px rgb(0 0 0 / 0.07);
+  --shadow-hov: 0 6px 12px rgb(0 0 0 / 0.08);
+
+  font-family: "Inter", system-ui, sans-serif;
 }
 
+/* ========= GRID ===================================================== */
 .grid {
   display: grid;
-  /* всегда ровно 2 колонки */
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px; /* расстояние между карточками */
+  gap: 12px;
+  padding: 12px 8px;
+  /* Мобильные устройства: 2 колонки с фиксированной шириной */
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  max-width: 100vw;
+  box-sizing: border-box;
 }
 
+/* Планшеты и маленькие десктопы */
+@media (min-width: 480px) {
+  .grid {
+    gap: 14px;
+    padding: 14px 10px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+/* Средние экраны */
+@media (min-width: 768px) {
+  .grid {
+    gap: 16px;
+    padding: 16px 12px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+/* Большие экраны */
+@media (min-width: 1024px) {
+  .grid {
+    gap: 18px;
+    padding: 18px 16px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+}
+
+/* ========= CARD ===================================================== */
 .card {
   display: flex;
   flex-direction: column;
-  background-color: #fff;
-  border-radius: 12px;
-  overflow: hidden; /* чтобы скругление работало на картинке */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s;
-}
-
-.card:hover {
-  transform: translateY(-2px);
-}
-
-/* ---- Подправленный блок с изображением ---- */
-.cardImage {
-  width: 100%;
-  height: auto; /* автоматическая высота, сохраняющая пропорции */
-  max-height: 120px; /* ограничиваем максимальную высоту */
-  object-fit: contain; /* показываем всю картинку, без обрезки */
-  background: #f5f5f5; /* нейтральный фон на случай пропорциональных пустот */
-  display: block;
-}
-/* ------------------------------------------- */
-
-.cardContent {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 8px;
-}
-
-.title {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.2;
-  margin: 0 0 4px;
-  /* если слишком длинный заголовок — обрезаем */
+  background: var(--card-bg);
+  border-radius: var(--radius);
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  box-shadow: var(--shadow-s);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+  width: 100%;
+  min-height: 240px;
 }
 
-.description {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  margin: 0 0 8px;
-  flex: 1; /* чтобы кнопка прижалась к низу карточки */
+/* Мобильные устройства */
+@media (max-width: 479px) {
+  .card {
+    min-height: 220px;
+    border-radius: 12px;
+  }
+}
+
+/* Планшеты */
+@media (min-width: 480px) and (max-width: 767px) {
+  .card {
+    min-height: 250px;
+  }
+}
+
+/* Десктоп */
+@media (min-width: 768px) {
+  .card {
+    min-height: 280px;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hov);
+  }
+}
+
+/* --- изображение + shimmer ----------------------------------------- */
+.pic {
+  position: relative;
+  width: 100%;
+  background: #f1f0f7;
   overflow: hidden;
 }
 
-.footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* Адаптивные пропорции изображения */
+@media (max-width: 479px) {
+  .pic {
+    aspect-ratio: 1 / 0.9; /* Чуть менее квадратное для мобильных */
+  }
 }
 
-.price {
-  font-size: 14px;
-  font-weight: bold;
-  color: #c59a5c; /* золотистый акцент */
+@media (min-width: 480px) {
+  .pic {
+    aspect-ratio: 1 / 1; /* Квадратное для планшетов и выше */
+  }
 }
 
-.button {
-  padding: 6px 12px;
-  background-color: #c59a5c;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s;
+.pic::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+      100deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.7) 50%,
+      transparent 100%
+    )
+    var(--accent-light);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  z-index: 0;
 }
 
-.button:hover:not(:disabled) {
-  background-color: #a17846; /* чуть потемнее на ховер */
+@keyframes shimmer {
+  0% {
+    background-position-x: -200%;
+  }
+  100% {
+    background-position-x: 200%;
+  }
 }
 
-.button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* состояние загрузки/ошибки */
-.placeholder {
-  width: 100%;
-  padding: 40px 0;
-  text-align: center;
-  color: var(--color-text-secondary);
-  font-size: 14px;
-}
-
-/* CatalogPage.module.css */
-
-.container {
-  padding: 16px;
-}
-.grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-}
-.card {
-  background: #fff;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-.cardImage {
-  width: 100%;
-  height: 160px;
-  object-fit: cover;
-}
-.cardContent {
-  padding: 12px;
-}
-.footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 8px;
-}
-.button {
-  padding: 6px 12px;
-  cursor: pointer;
-}
-.placeholder {
-  text-align: center;
-  padding: 40px;
-  color: #666;
-}
-
-/* Модалка */
-.modalOverlay {
-  position: fixed;
+/* Индикатор загрузки изображения */
+.imageLoader {
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  background-color: var(--accent-light);
+  z-index: 1;
 }
-.modal {
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  max-width: 320px;
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@media (min-width: 480px) {
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border-width: 3px;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pic img,
+.productImage {
+  position: relative;
+  z-index: 2;
   width: 100%;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-  text-align: center;
+  height: 100%;
+  object-fit: cover;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
 }
-.modalButtons {
+
+.productImage.loading {
+  opacity: 0;
+}
+
+.productImage.loaded,
+.pic img.loaded {
+  opacity: 1;
+}
+
+@media (min-width: 768px) {
+  .card:hover .pic img,
+  .card:hover .productImage {
+    transform: scale(1.04);
+  }
+}
+
+/* --- тело ----------------------------------------------------------- */
+.body {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin: 16px 0;
+  padding: 8px 10px 12px;
+  min-height: 0; /* Важно для правильного flex поведения */
 }
-.starsButton {
-  background: gold;
-  padding: 8px;
+
+@media (min-width: 480px) {
+  .body {
+    padding: 10px 12px 14px;
+  }
+}
+
+@media (min-width: 768px) {
+  .body {
+    padding: 12px 14px 16px;
+  }
+}
+
+.title {
+  margin: 0 0 4px;
+  font-weight: 600;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Адаптивные размеры шрифта заголовка */
+@media (max-width: 479px) {
+  .title {
+    font-size: 0.8rem;
+    margin-bottom: 2px;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  .title {
+    font-size: 0.85rem;
+    margin-bottom: 3px;
+  }
+}
+
+@media (min-width: 768px) {
+  .title {
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+  }
+}
+
+.desc {
+  margin: 0 0 6px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+@media (max-width: 479px) {
+  .desc {
+    font-size: 0.65rem;
+    margin-bottom: 4px;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  .desc {
+    font-size: 0.7rem;
+    margin-bottom: 5px;
+  }
+}
+
+@media (min-width: 768px) {
+  .desc {
+    font-size: 0.72rem;
+    margin-bottom: 6px;
+  }
+}
+
+.priceRow {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+@media (min-width: 480px) {
+  .priceRow {
+    margin-bottom: 10px;
+  }
+}
+
+.price {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+@media (max-width: 479px) {
+  .price {
+    font-size: 0.75rem;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  .price {
+    font-size: 0.8rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .price {
+    font-size: 0.82rem;
+  }
+}
+
+.stars {
+  color: var(--text-muted);
+}
+
+@media (max-width: 479px) {
+  .stars {
+    font-size: 0.65rem;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  .stars {
+    font-size: 0.7rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .stars {
+    font-size: 0.72rem;
+  }
+}
+
+/* --- кнопка --------------------------------------------------------- */
+.buyBtn {
+  margin-top: auto;
+  width: 100%;
   border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.frikassaButton {
-  background: #4a90e2;
+  border-radius: 10px;
+  background: var(--accent);
   color: #fff;
-  padding: 8px;
-  border: none;
-  border-radius: 4px;
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.15);
+  transition: background 0.15s;
   cursor: pointer;
+  flex-shrink: 0;
 }
-.closeModal {
-  background: none;
+
+@media (max-width: 479px) {
+  .buyBtn {
+    padding: 8px 0;
+    font-size: 0.75rem;
+    border-radius: 8px;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  .buyBtn {
+    padding: 9px 0;
+    font-size: 0.8rem;
+    border-radius: 10px;
+  }
+}
+
+@media (min-width: 768px) {
+  .buyBtn {
+    padding: 9px 0;
+    font-size: 0.86rem;
+    border-radius: 12px;
+  }
+
+  .buyBtn:hover:not(:disabled) {
+    background: var(--accent-dark);
+  }
+}
+
+.buyBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* ========= PLACEHOLDER / ERROR ===================================== */
+.placeholder {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 479px) {
+  .placeholder {
+    padding: 1.5rem 0.8rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* ========= MODAL ==================================================== */
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.45);
+  z-index: 3000;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  padding: 20px;
+  background: var(--card-bg);
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 0.18);
+  text-align: center;
+}
+
+@media (max-width: 479px) {
+  .modal {
+    max-width: 280px;
+    padding: 18px;
+    border-radius: 14px;
+  }
+}
+
+.modal h3 {
+  margin: 0 0 16px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+@media (max-width: 479px) {
+  .modal h3 {
+    font-size: 0.9rem;
+    margin-bottom: 14px;
+  }
+}
+
+.orderInfo {
+  margin: 12px 0;
+  padding: 12px;
+  background-color: var(--accent-light);
+  border-radius: 10px;
+  text-align: center;
+}
+
+@media (max-width: 479px) {
+  .orderInfo {
+    padding: 10px;
+    margin: 10px 0;
+  }
+}
+
+.productName {
+  font-weight: 600;
+  margin: 0 0 6px 0;
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 479px) {
+  .productName {
+    font-size: 0.8rem;
+  }
+}
+
+.productPrice {
+  font-weight: 700;
+  margin: 0;
+  color: var(--accent-dark);
+  font-size: 1rem;
+}
+
+@media (max-width: 479px) {
+  .productPrice {
+    font-size: 0.9rem;
+  }
+}
+
+.modalBtn,
+.modalBtnAlt {
+  width: 100%;
+  padding: 11px 0;
   border: none;
-  color: #999;
+  border-radius: 10px;
+  font-weight: 600;
+  margin-bottom: 10px;
   cursor: pointer;
+  transition: filter 0.18s;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 479px) {
+  .modalBtn,
+  .modalBtnAlt {
+    padding: 10px 0;
+    font-size: 0.8rem;
+    border-radius: 8px;
+  }
+}
+
+.modalBtn {
+  background: #ffd950;
+  color: #000;
+}
+
+.modalBtnAlt {
+  background: var(--accent);
+  color: #fff;
+}
+
+.modalBtn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.modalBtnAlt:hover:not(:disabled) {
+  background: var(--accent-dark);
+}
+
+.modalBtn:disabled,
+.modalBtnAlt:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-size: 18px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.close:hover {
+  background: var(--accent-light);
+}
+
+/* ========= TELEGRAM WEB-VIEW optimizations ========================== */
+@supports (-webkit-touch-callout: none) {
+  body {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Убираем hover эффекты на тач устройствах */
+@media (hover: none) and (pointer: coarse) {
+  .card:hover {
+    transform: none;
+    box-shadow: var(--shadow-s);
+  }
+
+  .card:hover .pic img,
+  .card:hover .productImage {
+    transform: none;
+  }
+
+  .buyBtn:hover:not(:disabled) {
+    background: var(--accent);
+  }
+
+  .modalBtnAlt:hover:not(:disabled) {
+    background: var(--accent);
+  }
+}
+
+/* Дополнительные стили для очень маленьких экранов */
+@media (max-width: 360px) {
+  .grid {
+    gap: 10px;
+    padding: 10px 6px;
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+
+  .card {
+    min-height: 200px;
+  }
+
+  .title {
+    font-size: 0.75rem;
+  }
+
+  .desc {
+    font-size: 0.6rem;
+  }
+
+  .price {
+    font-size: 0.7rem;
+  }
+
+  .stars {
+    font-size: 0.6rem;
+  }
+
+  .buyBtn {
+    font-size: 0.7rem;
+    padding: 7px 0;
+  }
 }

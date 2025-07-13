@@ -1,9 +1,11 @@
-// src/pages/LoginPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { loginWithTelegram, fetchMe } from "../api/auth";
+import { loginWithTelegram } from "../api/auth";
 import styles from "./LoginPage.module.css";
+
+const log = (...args) => console.log("[LoginPage]", ...args);
+const logError = (...args) => console.error("[LoginPage]", ...args);
 
 export default function LoginPage() {
   const [error, setError] = useState(null);
@@ -12,52 +14,61 @@ export default function LoginPage() {
   const qc = useQueryClient();
 
   useEffect(() => {
-    console.group("🧪 [LoginPage] useEffect start");
+    log("🚀 Компонент смонтирован, запускается useEffect для входа.");
 
-    // 1) пытаемся взять initData
+    qc.clear();
+    log("✅ Кэш React Query очищен.");
+
+    console.group("🧪 [LoginPage] Процесс входа запущен");
+
     let rawInit;
     if (window.Telegram?.WebApp?.initData) {
       rawInit = window.Telegram.WebApp.initData;
-      console.log("  Got initData from Telegram.WebApp:", rawInit);
     } else {
       rawInit = searchParams.get("initData");
-      console.log("  Got initData from URL:", rawInit);
     }
-    console.log("  typeof rawInit:", typeof rawInit);
 
     if (!rawInit) {
-      console.error("  No initData — abort");
-      setError("Нет initData от Telegram");
+      setError("Нет данных для входа от Telegram (initData).");
       console.groupEnd();
       return;
     }
 
-    // 2) логинимся на backend
-    console.log("  Calling loginWithTelegram…");
+    log("Шаг 1: Успешно получены initData.");
+    log("Шаг 2: Вызов `loginWithTelegram`...");
+
     loginWithTelegram(rawInit)
-      .then((loginData) => {
-        console.log("  loginWithTelegram returned:", loginData);
-        console.log("  Now fetching /auth/me…");
-        // ===> ПРАВКА: передаём объект опций, а не два аргумента
-        return qc.fetchQuery({
-          queryKey: ["me"],
-          queryFn: fetchMe,
-        });
-      })
-      .then((me) => {
-        console.log("  fetchMe returned:", me);
-        if (!me) {
-          throw new Error("Не удалось получить профиль пользователя");
+      .then((user) => {
+        // Переменная теперь называется user для ясности
+        log("Шаг 3: Получен объект пользователя от auth.js.");
+        console.log("  ✅ Объект пользователя:", user);
+
+        // --- ЭТО КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ ---
+        // Проверяем, что 'user' это действительно объект и у него есть id
+        if (!user || typeof user !== "object" || !user.id) {
+          logError(
+            "  ❌ ОШИБКА: Полученные данные не являются валидным объектом пользователя.",
+          );
+          throw new Error("Ответ от сервера не содержит данных пользователя.");
         }
-        console.log("  Navigation to '/'");
+
+        log("  📋 Данные пользователя:", user);
+
+        log("Шаг 4: Помещение данных пользователя в кэш React Query...");
+        qc.setQueryData(["me"], user);
+        log("  ✅ Данные пользователя успешно помещены в кэш.");
+
+        log("Шаг 5: Навигация на главную страницу '/'...");
         navigate("/", { replace: true });
       })
       .catch((e) => {
-        console.error("  ❌ [LoginPage] LoginPipe error:", e);
-        const msg = e.response?.data?.message || e.message;
+        logError("  ❌ [LoginPage] Ошибка в процессе входа:", e);
+        const msg =
+          e.response?.data?.detail || e.response?.data?.message || e.message;
         setError(msg);
       })
       .finally(() => {
+        log("🏁 Процесс входа завершен.");
         console.groupEnd();
       });
   }, [qc, navigate, searchParams]);

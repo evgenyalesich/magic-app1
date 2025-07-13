@@ -1,127 +1,314 @@
-/* src/pages/admin/AdminProductsPage.module.css */
+/* =========================================================================
+   ADMIN · PRODUCTS LIST  (lavender style — user-like layout)
+   ====================================================================== */
 
+/* ───────── Grid (mobile-first) ───────── */
 .grid {
-  padding: 16px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
-  background: var(--color-bg);
+  padding: 16px;
+  grid-template-columns: repeat(
+    2,
+    minmax(0, 1fr)
+  ); /* две карточки даже от 320 px */
+  background: #f8f7fc;
+}
+@media (min-width: 480px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
+/* ───────── Карточка ───────── */
 .card {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(139, 125, 196, 0.1);
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   display: flex;
   flex-direction: column;
-  background-color: #fff;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s;
 }
-
 .card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(139, 125, 196, 0.15);
 }
 
+/* ───────── Изображение ───────── */
+.cardHeader {
+  position: relative;
+  background: #f5f4ff;
+}
 .cardImage {
   width: 100%;
-  max-height: 120px;
-  height: auto;
-  object-fit: contain;
-  background: #f5f5f5;
-  flex-shrink: 0;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+.card:hover .cardImage {
+  transform: scale(1.05);
 }
 
-.title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 12px 16px 4px;
-  line-height: 1.2;
+.imagePlaceholder {
+  width: 100%;
+  aspect-ratio: 1/1;
+  background: linear-gradient(135deg, #e8e5ff 0%, #f0edff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9c88ff;
+  font-size: 2rem;
+}
+
+/* ───────── Контент ───────── */
+.cardContent {
+  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.cardTitle {
+  font:
+    600 14px/1.3 "Nunito",
+    sans-serif;
+  color: #2d2d2d;
+  margin: 0 0 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cardCategory {
+  font-size: 12px;
+  color: #8b7dc4;
+  margin: 0 0 12px;
+  text-transform: lowercase;
+}
+.cardMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  margin-top: auto;
+}
+.price {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2d2d2d;
+}
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #666;
+}
+.rating::before {
+  content: "⭐";
+  font-size: 14px;
+}
+
+/* ───────── Overlay-кнопки сверху (если нужны) ───────── */
+.adminActions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.card:hover .adminActions {
+  opacity: 1;
+}
+
+.adminBtn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition:
+    background 0.2s,
+    color 0.2s,
+    transform 0.2s;
+}
+.editBtn {
+  background: rgba(255, 255, 255, 0.9);
+  color: #8b7dc4;
+}
+.editBtn:hover {
+  background: #8b7dc4;
+  color: #fff;
+}
+.deleteBtn {
+  background: rgba(255, 255, 255, 0.9);
+  color: #e74c3c;
+}
+.deleteBtn:hover {
+  background: #e74c3c;
+  color: #fff;
+}
+
+/* ───────── Кнопки снизу карточки (Edit / Delete) ───────── */
+.cardButtons {
+  display: flex;
+  gap: 6px; /* меньше зазор */
+  margin-top: 10px;
+}
+.editCardBtn,
+.deleteCardBtn {
+  flex: 1 1 0; /* ровно половина */
+  min-width: 0; /* позволяет ужиматься */
+  padding: 6px 4px; /* ниже и уже */
+  font-size: 12px;
+  line-height: 1.1;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    transform 0.2s;
 }
-
-.description {
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-  margin: 0 16px 12px;
-  flex: 1;
-  overflow: hidden;
+.editCardBtn {
+  background: #f5f4ff;
+  color: #8b7dc4;
 }
-
-.footer {
-  display: flex;
-  flex-direction: column;
-  padding: 8px 16px 16px;
-  gap: 8px;
-}
-
-.price {
-  font-size: 1rem;
-  font-weight: bold;
-  color: var(--color-primary);
-}
-
-.buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-}
-
-.button,
-.deleteButton {
-  width: 100%;
-  padding: 6px 0;
-  font-size: 0.875rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.editCardBtn:hover {
+  background: #8b7dc4;
   color: #fff;
-  transition: background-color 0.2s;
+  transform: translateY(-1px);
+}
+.deleteCardBtn {
+  background: #fff4f4;
+  color: #e74c3c;
+}
+.deleteCardBtn:hover {
+  background: #e74c3c;
+  color: #fff;
+  transform: translateY(-1px);
 }
 
-.button {
-  background-color: #c59a5c;
-}
-
-.button:hover:not(:disabled) {
-  background-color: #a17846;
-}
-
-.deleteButton {
-  background-color: #e74c3c;
-}
-
-.deleteButton:hover:not(:disabled) {
-  background-color: #c0392b;
-}
-
+/* ───────── Форма редактирования ───────── */
 .editForm {
-  display: flex;
-  flex-direction: column;
-  padding: 16px;
-  gap: 8px;
+  padding: 20px 20px 24px;
 }
-
-.editForm input,
-.editForm textarea {
+.formGroup {
+  margin-bottom: 16px;
+}
+.formLabel {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.formInput,
+.formTextarea {
   width: 100%;
-  padding: 8px;
-  font-size: 0.875rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 12px;
+  border: 2px solid #e8e5ff;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fafafa;
+  transition: border-color 0.2s;
 }
-
-.editForm textarea {
+.formInput:focus,
+.formTextarea:focus {
+  outline: none;
+  border-color: #a594f7;
+  background: #fff;
+}
+.formTextarea {
   resize: vertical;
-  min-height: 60px;
+  min-height: 80px;
+}
+.imagePreview {
+  margin-top: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 100px;
+}
+.imagePreview img {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 
-.placeholder {
-  width: 100%;
-  padding: 40px 0;
-  text-align: center;
-  color: var(--color-text-secondary);
-  font-size: 0.875rem;
+.formActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+.saveButton,
+.cancelButton {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+.saveButton {
+  background: linear-gradient(135deg, #a594f7 0%, #8b7dc4 100%);
+  color: #fff;
+}
+.saveButton:hover {
+  background: linear-gradient(135deg, #9680f5 0%, #7d6fb8 100%);
+  transform: translateY(-1px);
+}
+.cancelButton {
+  background: #f5f5f5;
+  color: #666;
+}
+.cancelButton:hover {
+  background: #e0e0e0;
+  transform: translateY(-1px);
+}
+
+/* — вертикальный стэк Save / Cancel на очень узких экранах — */
+@media (max-width: 420px) {
+  .formActions {
+    flex-direction: column;
+  }
+  .formActions > button {
+    width: 100%;
+  }
+}
+
+/* ───────── Пустое состояние, статус и прочие блоки без изменений ───────── */
+
+/* ≤360 px: чуть ужимаем сетку и заголовок */
+@media (max-width: 360px) {
+  .grid {
+    gap: 12px;
+  }
+  .cardTitle {
+    -webkit-line-clamp: 3;
+    font-size: 13px;
+  }
+}
+
+/* Гарантируем 2-колоночную сетку даже 320-359 px */
+@media (max-width: 359px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
 }

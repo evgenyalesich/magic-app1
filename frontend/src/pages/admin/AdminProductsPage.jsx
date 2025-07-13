@@ -1,13 +1,26 @@
-// src/pages/AdminProductsPage.jsx
-import React, { useEffect, useState } from "react";
+// src/pages/admin/AdminProductsPage.jsx
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import styles from "./AdminProductsPage.module.css";
+
+// 1. Импортируем хук useMe
+import { useMe } from "../../api/auth";
 import {
   fetchAdminProducts,
   updateAdminProduct,
   deleteAdminProduct,
 } from "../../api/admin";
 
+/* превращаем 'uploads/1.jpg' → 'https://api/…/uploads/1.jpg' */
+const API_BASE = import.meta.env.VITE_API_URL || "";
+const fullImageUrl = (path) => {
+  if (!path) return "/img/placeholder.webp";
+  if (path.startsWith("http")) return path;
+  return `${API_BASE.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+};
+
 export default function AdminProductsPage() {
+  /* ───────── state ───────── */
   const [products, setProducts] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
@@ -15,162 +28,190 @@ export default function AdminProductsPage() {
     description: "",
     price: "",
     image_url: "",
-    // category_id: ""  // если нужна смена категории
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // 2. Получаем статус авторизации
+  const { isSuccess: isUserReady, isLoading: isUserLoading } = useMe();
+
+  /* ───── загрузка списка ───── */
+  // 3. Запускаем загрузку только после проверки пользователя
   useEffect(() => {
-    loadProducts();
-  }, []);
+    if (isUserReady) {
+      loadProducts();
+    }
+  }, [isUserReady]); // 4. Добавляем зависимость
 
   async function loadProducts() {
-    setLoading(true);
-    setError("");
     try {
-      const data = await fetchAdminProducts();
-      setProducts(data);
-    } catch (err) {
-      console.error("Ошибка при загрузке товаров:", err);
+      setLoading(true);
+      setProducts(await fetchAdminProducts());
+    } catch (e) {
+      console.error(e);
       setError("Не удалось загрузить товары");
     } finally {
       setLoading(false);
     }
   }
 
-  function startEdit(p) {
+  /* ───── редактирование ───── */
+  const startEdit = (p) => {
     setEditingId(p.id);
     setFormData({
-      title: p.title,
-      description: p.description,
-      price: p.price,
-      image_url: p.image_url,
-      // category_id: p.category_id || ""
+      title: p.title || "",
+      description: p.description || "",
+      price: p.price || "",
+      image_url: p.image_url || "",
     });
-  }
+  };
+  const cancelEdit = () => setEditingId(null);
 
-  function cancelEdit() {
-    setEditingId(null);
-  }
+  const handleChange = (e) =>
+    setFormData((f) => ({ ...f, [e.target.name]: e.target.value }));
 
-  function handleChange(e) {
-    const { name, value } = e.target;
-    setFormData((f) => ({ ...f, [name]: value }));
-  }
-
-  async function saveEdit(id) {
+  const saveEdit = async (id) => {
     try {
       await updateAdminProduct(id, formData);
+      toast.success("Сохранено");
       setEditingId(null);
-      await loadProducts();
-      alert("Товар успешно обновлён");
-    } catch (err) {
-      console.error("Ошибка при сохранении товара:", err);
-      alert("Не удалось сохранить изменения: " + err.message);
+      loadProducts();
+    } catch (e) {
+      toast.error(e.message || "Не удалось сохранить");
     }
-  }
+  };
 
-  async function handleDelete(id) {
-    // безопасный confirm: если окно поддерживается — спросим, иначе удаляем сразу
-    let ok = true;
-    if (typeof window.confirm === "function") {
-      ok = window.confirm("Точно удалить?");
-    }
-    if (!ok) return;
-
+  /* ───── удаление ───── */
+  const handleDelete = async (id) => {
+    if (!window.confirm("Удалить товар?")) return;
     try {
-      const { id: deletedId } = await deleteAdminProduct(id);
-      setProducts((ps) => ps.filter((p) => p.id !== deletedId));
-      alert("Товар удалён");
-    } catch (err) {
-      console.error("Ошибка при удалении товара:", err);
-      alert("Не удалось удалить товар: " + err.message);
+      await deleteAdminProduct(id);
+      setProducts((ps) => ps.filter((p) => p.id !== id));
+      toast.success("Удалено");
+    } catch (e) {
+      toast.error(e.message || "Ошибка удаления");
     }
-  }
+  };
 
-  if (loading) return <div className={styles.placeholder}>Загрузка…</div>;
+  /* ───── UI-состояния ───── */
+  // 5. Добавляем UI-состояние для проверки доступа
+  if (isUserLoading)
+    return <div className={styles.placeholder}>Проверка доступа…</div>;
+  if (loading)
+    return <div className={styles.placeholder}>Загрузка товаров…</div>;
   if (error) return <div className={styles.placeholder}>{error}</div>;
+  if (!products.length)
+    return <div className={styles.placeholder}>Товаров нет</div>;
 
+  /* ───── render ───── */
   return (
     <div className={styles.grid}>
-      {products.map((p) => (
-        <div key={p.id} className={styles.card}>
-          {editingId === p.id ? (
+      {products.map((p) =>
+        editingId === p.id ? (
+          /* ——— ФОРМА РЕДАКТИРОВАНИЯ ——— */
+          <div key={p.id} className={styles.card}>
             <div className={styles.editForm}>
-              <input
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                placeholder="Название"
-              />
-              <input
-                name="price"
-                type="number"
-                value={formData.price}
-                onChange={handleChange}
-                placeholder="Цена"
-              />
-              <input
-                name="image_url"
-                value={formData.image_url}
-                onChange={handleChange}
-                placeholder="URL картинки"
-              />
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Описание"
-              />
-              {/* если нужны ещё поля, например категория */}
-              {/* <input
-                name="category_id"
-                type="number"
-                value={formData.category_id}
-                onChange={handleChange}
-                placeholder="ID категории"
-              /> */}
-              <div className={styles.buttons}>
-                <button type="button" onClick={() => saveEdit(p.id)}>
-                  Сохранить
+              {["title", "price", "image_url", "description"].map((field) =>
+                field !== "description" ? (
+                  <div key={field} className={styles.formGroup}>
+                    <label className={styles.formLabel}>
+                      {field === "title"
+                        ? "Название"
+                        : field === "price"
+                          ? "Цена (₽)"
+                          : "URL картинки"}
+                    </label>
+                    <input
+                      className={styles.formInput}
+                      name={field}
+                      type={field === "price" ? "number" : "text"}
+                      value={formData[field]}
+                      onChange={handleChange}
+                    />
+                  </div>
+                ) : (
+                  <div key={field} className={styles.formGroup}>
+                    <label className={styles.formLabel}>Описание</label>
+                    <textarea
+                      className={styles.formTextarea}
+                      name="description"
+                      value={formData.description}
+                      onChange={handleChange}
+                      rows="3"
+                    />
+                  </div>
+                ),
+              )}
+
+              {formData.image_url && (
+                <div className={styles.imagePreview}>
+                  <img src={fullImageUrl(formData.image_url)} alt="preview" />
+                </div>
+              )}
+
+              <div className={styles.formActions}>
+                <button
+                  className={styles.saveButton}
+                  onClick={() => saveEdit(p.id)}
+                >
+                  💾 Сохранить
                 </button>
-                <button type="button" onClick={cancelEdit}>
-                  Отмена
+                <button className={styles.cancelButton} onClick={cancelEdit}>
+                  ❌ Отмена
                 </button>
               </div>
             </div>
-          ) : (
-            <>
-              <img
-                src={p.image_url}
-                alt={p.title}
-                className={styles.cardImage}
-              />
-              <h3 className={styles.title}>{p.title}</h3>
-              <p className={styles.description}>{p.description}</p>
-              <div className={styles.footer}>
-                <span className={styles.price}>{p.price} ₽</span>
-                <div className={styles.buttons}>
-                  <button
-                    type="button"
-                    className={styles.button}
-                    onClick={() => startEdit(p)}
-                  >
-                    Редактировать
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.deleteButton}
-                    onClick={() => handleDelete(p.id)}
-                  >
-                    Удалить
-                  </button>
-                </div>
+          </div>
+        ) : (
+          /* ——— ОБЫЧНАЯ КАРТОЧКА ——— */
+          <div key={p.id} className={styles.card}>
+            <div className={styles.cardHeader}>
+              {p.image_url ? (
+                <img
+                  src={fullImageUrl(p.image_url)}
+                  alt={p.title}
+                  className={styles.cardImage}
+                  onError={(e) =>
+                    (e.currentTarget.src = "/img/placeholder.webp")
+                  }
+                />
+              ) : (
+                <div className={styles.imagePlaceholder}>📷</div>
+              )}
+            </div>
+
+            <div className={styles.cardContent}>
+              <h3 className={styles.cardTitle}>{p.title || "Без названия"}</h3>
+              <p className={styles.cardCategory}>
+                {p.description || "Без описания"}
+              </p>
+
+              <div className={styles.cardMeta}>
+                <span className={styles.price}>
+                  {p.price ? `${p.price} ₽` : "Не указана"}
+                </span>
+                <span className={styles.rating}>{p.id}</span>
               </div>
-            </>
-          )}
-        </div>
-      ))}
+
+              {/* ——— КНОПКИ СНИЗУ ——— */}
+              <div className={styles.cardButtons}>
+                <button
+                  className={styles.editCardBtn}
+                  onClick={() => startEdit(p)}
+                >
+                  ✎ Редактировать
+                </button>
+                <button
+                  className={styles.deleteCardBtn}
+                  onClick={() => handleDelete(p.id)}
+                >
+                  🗑 Удалить
+                </button>
+              </div>
+            </div>
+          </div>
+        ),
+      )}
     </div>
   );
 }

@@ -1,57 +1,85 @@
-// frontend/src/api/messages.js
 import { apiClient } from "./client";
 
-/* ------------------------------------------------------------------
- * Вспомогательная функция: возвращаем res.data и пробрасываем ошибку
- * -----------------------------------------------------------------*/
-function unwrap(res) {
-  /*  apiClient (axios-обёртка) всегда отдаёт объект вида
-      { data, status, … }.  Если HTTP-код ≥ 400, axios уже бросил
-      исключение, поэтому здесь достаточно вернуть res.data. */
-  return res.data;
+const unwrap = (res) => res.data;
+
+/* --------------------------------------------------------------
+ * URL-builder
+ * ------------------------------------------------------------- */
+function makeChatUrl(orderId, since = "", usePoll = false) {
+  if (usePoll) {
+    // long-poll энд-пойнт
+    const qs = since ? `?after=${encodeURIComponent(since)}` : "";
+    return `/messages/${orderId}/poll${qs}`;
+  }
+  // обычный one-shot запрос
+  if (since) {
+    return `/messages/${orderId}?since=${encodeURIComponent(since)}`;
+  }
+  return `/messages/${orderId}`;
 }
 
-/*───────────────── 1) список чатов пользователя ──────────────────────*/
-/** GET /api/messages/ → [{ order_id, product, last_message, … }, …] */
+/* ==============================================================
+ *                         PUBLIC  API
+ * ============================================================== */
+/**
+ * Список чатов (по одному последнему сообщению в заказе)
+ */
 export const fetchUserChats = () => apiClient.get("/messages/").then(unwrap);
 
-/*───────────────── 2) полная переписка по заказу ─────────────────────*/
-/** GET /api/messages/:id → [{ id, content, created_at, … }, …] */
-export const fetchMessages = (orderId) =>
-  apiClient.get(`/messages/${orderId}`).then(unwrap);
+/**
+ * Получить историю / новые сообщения.
+ * @param {number|string}  orderId
+ * @param {string}  [since]      ISO-метка последнего сообщения
+ * @param {boolean} [usePoll]    true → long-poll энд-пойнт
+ * @param {AbortSignal} [signal] для прерывания висящего fetch
+ */
+export async function fetchMessages(
+  orderId,
+  since = "",
+  usePoll = false,
+  signal = undefined,
+) {
+  const url = makeChatUrl(orderId, since, usePoll);
+  return (await apiClient.get(url, { signal })).data;
+}
 
-/*───────────────── 3) пользователь отправляет сообщение ──────────────*/
-/** POST /api/messages/:id */
-export const sendMessage = (orderId, content) => {
+/**
+ * Отправить сообщение от пользователя.
+ * tmpId (client_tmp_id) опционален — нужен для optimistic-UI.
+ */
+export function sendMessage(orderId, content, tmpId) {
   const body = {
-    order_id: orderId, // бэку удобно иметь ID и в body
+    order_id: orderId,
     content,
-    is_read: false, // новое сообщение помечаем непрочитанным
+    ...(tmpId && { client_tmp_id: tmpId }),
   };
   return apiClient.post(`/messages/${orderId}`, body).then(unwrap);
-};
+}
 
-/*───────────────── 4) админ отвечает пользователю ────────────────────*/
-/** POST /api/admin/messages/:id */
-export const sendAdminMessage = (orderId, content) =>
-  apiClient.post(`/admin/messages/${orderId}`, { content }).then(unwrap);
+/* --------------------------------------------------------------
+ * Админские helper-ы (оставлены, потому что фронт ими пользуется)
+ * ------------------------------------------------------------- */
+export const sendAdminMessage = (orderId, content, tmpId) =>
+  apiClient
+    .post(`/admin/messages/${orderId}`, {
+      content,
+      ...(tmpId && { client_tmp_id: tmpId }),
+    })
+    .then(unwrap);
 
-/*───────────────── 5) получить один заказ (для заголовков) ───────────*/
-/** GET /api/orders/:id → { id, status, product: { title, … }, … } */
+/* --------------------------------------------------------------
+ * Заказ и помощники
+ * ------------------------------------------------------------- */
 export const fetchOrder = (orderId) =>
   apiClient.get(`/orders/${orderId}`).then(unwrap);
 
-/*───────────────── 6) последнее сообщение заказа (для списков) ───────*/
-/** Берём только одну последнюю запись, если бэк это поддерживает.  */
 export const fetchLastMessage = async (orderId) => {
   try {
-    // Если у бэка есть параметры ?limit=1&direction=desc — используем их.
     const { data } = await apiClient.get(`/messages/${orderId}`, {
       params: { limit: 1, direction: "desc" },
     });
-    return Array.isArray(data) ? (data.at(0) ?? null) : null;
+    return Array.isArray(data) ? (data[0] ?? null) : null;
   } catch {
-    /* Фолбэк: грузим весь массив и берём последний элемент */
     const all = await fetchMessages(orderId);
     return Array.isArray(all) ? (all.at(-1) ?? null) : null;
   }

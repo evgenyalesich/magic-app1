@@ -1,7 +1,7 @@
 // src/pages/AdminHomePage.jsx
 import React from "react";
 import { Link } from "react-router-dom";
-import styles from "./Admin.module.css";
+import styles from "./AdminHomePage.module.css";
 
 export default function AdminHomePage() {
   return (

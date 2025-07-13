@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 
-import { apiClient } from "../api/client";
-import { initPayment } from "../api/payments";
+// 1. Импортируем хук useMe
+import { useMe } from "../api/auth";
+import { createOrderForStars } from "../api/payments";
 
 import styles from "./StarsPaymentPage.module.css";
 
@@ -12,43 +13,52 @@ export default function StarsPaymentPage() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
+  // 2. Получаем статус загрузки пользователя
+  const { isSuccess: isUserLoaded, isLoading: isUserLoading } = useMe();
+
   const handleStarsPay = async () => {
-    if (busy) return;
+    // Добавим дополнительную проверку на всякий случай
+    if (busy || !isUserLoaded) return;
+    setBusy(true);
+
     try {
-      setBusy(true);
+      // 1. создаём pending-заказ и получаем { order_id, invoice }
+      const { order_id, invoice } = await createOrderForStars(+productId);
 
-      /* 1. создаём заказ и получаем invoice */
-      const { order_id, invoice } = await initPayment(+productId);
+      // 2. подписываемся на WebApp-событие успешной оплаты
+      window.Telegram.WebApp.onEvent("payment_successful", () => {
+        toast.success("Оплата звёздами прошла успешно!");
+        // 3. в момент подтверждения платёжа — сразу в чат
+        navigate(`/messages/${order_id}`);
+      });
 
-      /* 2. открываем окно оплаты у Telegram */
+      // 4. поехали — открываем окно оплаты
       await window.Telegram.WebApp.openInvoice(invoice);
-
-      /* 3. простейший polling – смотрим, когда заказ станет paid */
-      const poll = setInterval(async () => {
-        const { data: order } = await apiClient.get(`/orders/${order_id}`);
-        if (order.status === "paid") {
-          clearInterval(poll);
-          toast.success("Оплачено звёздами!");
-          navigate(`/chats/${order_id}`);
-        }
-      }, 3000);
     } catch (err) {
-      toast.error(err.message);
-    } finally {
+      console.error("Ошибка оплаты звёздами:", err);
+      toast.error(err.message || "Не удалось оплатить звёздами");
       setBusy(false);
     }
+    // busy останется true, пока не придёт событие payment_successful
+  };
+
+  // 3. Функция для определения текста на кнопке
+  const getButtonText = () => {
+    if (isUserLoading) return "Проверка сессии…";
+    if (busy) return "Ожидаем подтверждения…";
+    return "Оплатить через ⭐ Telegram";
   };
 
   return (
     <div className={styles.page}>
       <h1>Оплата звёздами</h1>
-
       <button
         onClick={handleStarsPay}
         className={styles.payBtn}
-        disabled={busy}
+        // 4. Блокируем кнопку, если идёт проверка пользователя или оплата
+        disabled={busy || isUserLoading || !isUserLoaded}
       >
-        {busy ? "Ожидаем оплату…" : "Оплатить через ⭐ Telegram"}
+        {getButtonText()}
       </button>
     </div>
   );

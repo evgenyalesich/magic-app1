@@ -2,6 +2,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { Toaster } from "react-hot-toast";
+import "./index.css";
 // 1) Сначала Tailwind
 import "./assets/tailwind.css";
 

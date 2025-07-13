@@ -1,74 +1,101 @@
-import api from "./index";
+// src/services/auth.js
+
+import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 
-/**
- * Логин через Telegram WebApp.
- */
-export function loginWithTelegram(rawInitData) {
-  console.group("📤 [auth.js] loginWithTelegram");
-  console.log("  rawInitData:", rawInitData);
-  console.log("  typeof rawInitData:", typeof rawInitData);
-  console.log("  api base URL:", api.defaults.baseURL);
+// ───────────────────────────────────────────────────────────────────────────
+// 0. Axios instance
+// ───────────────────────────────────────────────────────────────────────────
+// Укажите VITE_API_BASE_URL в .env.[mode]  (например, https://api.example.com)
+// В dev‑режиме по умолчанию проксируется на "/api".
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
+});
 
-  return api
-    .post("/auth/login", { init_data: rawInitData })
-    .then((res) => {
-      console.log("  ✅ [auth.js] /auth/login status:", res.status);
-      console.log("  ✅ [auth.js] response headers:", res.headers);
-      console.log("  ✅ [auth.js] response data:", res.data);
-      console.groupEnd();
-      return res.data;
-    })
-    .catch((err) => {
-      console.error(
-        "  ❌ [auth.js] /auth/login error status:",
-        err.response?.status,
-      );
-      console.error(
-        "  ❌ [auth.js] /auth/login error data:",
-        err.response?.data,
-      );
-      console.error("  ❌ [auth.js] full error:", err);
-      console.groupEnd();
-      throw err;
-    });
+// ───────────────────────────────────────────────────────────────────────────
+// 1. Работа с initData (storage helpers)
+// ───────────────────────────────────────────────────────────────────────────
+const INIT_KEY = "tg_init_data"; // sessionStorage, живёт пока открыта вкладка
+
+export function getInitData() {
+  return sessionStorage.getItem(INIT_KEY);
+}
+
+export function setInitData(raw) {
+  sessionStorage.setItem(INIT_KEY, raw);
+}
+
+export function clearInitData() {
+  sessionStorage.removeItem(INIT_KEY);
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// 2. Axios interceptors
+// ───────────────────────────────────────────────────────────────────────────
+api.interceptors.request.use(
+  (config) => {
+    const init = getInitData();
+    if (init) config.headers["X-Telegram-Init-Data"] = init;
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // invalid / expired initData ⇒ чистим storage, чтобы React‑Query перезапросил /me
+      clearInitData();
+    }
+    return Promise.reject(error);
+  },
+);
+
+// ───────────────────────────────────────────────────────────────────────────
+// 3. Auth API helpers
+// ───────────────────────────────────────────────────────────────────────────
+/**
+ * Логин через Telegram Web App.
+ * Отправляем `initData` => получаем данные пользователя.
+ * @param {string} initData – строка Telegram.WebApp.initData (raw)
+ * @returns {Promise<object>} user
+ */
+export async function loginWithTelegram(initData) {
+  const { data } = await api.post("/auth/login", { init_data: initData });
+  setInitData(initData); // сохраняем до закрытия вкладки
+  return data.user; // backend возвращает { user: { … } }
 }
 
 /**
- * Получение профиля текущего пользователя.
+ * Выход из приложения – на сервер ходить не нужно, достаточно забыть initData.
+ */
+export function logout() {
+  clearInitData();
+}
+
+/**
+ * Current user (однократный вызов – кешируется React‑Query)
  */
 export async function fetchMe() {
-  console.group("👤 [auth.js] fetchMe");
-  console.log("  api base URL:", api.defaults.baseURL);
-  try {
-    const { data, status, headers } = await api.get("/auth/me");
-    console.log("  ✅ fetchMe status:", status);
-    console.log("  ✅ fetchMe headers:", headers);
-    console.log("  ✅ fetchMe data:", data);
-    console.groupEnd();
-    return data;
-  } catch (err) {
-    console.error("  ❌ fetchMe error status:", err.response?.status);
-    console.error("  ❌ fetchMe error data:", err.response?.data);
-    if (err.response?.status === 401) {
-      console.warn("  ⚠️ fetchMe — not authorised (401)");
-      console.groupEnd();
-      return null;
-    }
-    console.groupEnd();
-    throw err;
-  }
+  const { data } = await api.get("/auth/me");
+  return data; // backend отдаёт UserSchema
 }
 
 /**
- * Хук react-query для /auth/me
+ * React‑hook, который автоматически делает /me, если есть initData.
  */
 export function useMe() {
-  return useQuery({
-    queryKey: ["me"],
-    queryFn: fetchMe,
-    retry: false,
-    refetchOnWindowFocus: false,
-    staleTime: 60_000,
-  });
+  const enabled = Boolean(getInitData());
+  return useQuery({ queryKey: ["me"], queryFn: fetchMe, enabled });
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// 4. Utils
+// ───────────────────────────────────────────────────────────────────────────
+export function isAuthenticated() {
+  return Boolean(getInitData());
+}
+
+// Default export для остальных сервисов (при необходимости)
+export default api;

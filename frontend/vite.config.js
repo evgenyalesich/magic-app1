@@ -3,10 +3,11 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
+  build: {
+    sourcemap: true, // ← ЭТО
+  },
   plugins: [
     react({
-      // этот параметр по умолчанию — "automatic",
-      // но если у тебя стоял "classic", поменяй на "automatic"
       jsxRuntime: "automatic",
     }),
   ],

@@ -4,6 +4,9 @@ import { useNavigate } from "react-router-dom";
 import styles from "./NewProductPage.module.css";
 import { createAdminProduct } from "../../api/admin";
 
+// 1. Импортируем хук useMe
+import { useMe } from "../../api/auth";
+
 export default function NewProductPage() {
   const [form, setForm] = useState({
     title: "",
@@ -14,6 +17,9 @@ export default function NewProductPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  // 2. Получаем статус авторизации
+  const { isSuccess: isUserReady, isLoading: isUserLoading } = useMe();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -35,6 +41,16 @@ export default function NewProductPage() {
       setSubmitting(false);
     }
   };
+
+  // 3. Функция для определения текста и состояния кнопки
+  const getSubmitButtonState = () => {
+    if (isUserLoading) return { text: "Проверка сессии…", disabled: true };
+    if (submitting) return { text: "Сохраняем…", disabled: true };
+    if (!isUserReady) return { text: "Добавить", disabled: true };
+    return { text: "Добавить", disabled: false };
+  };
+
+  const buttonState = getSubmitButtonState();
 
   return (
     <div className={styles.container}>
@@ -92,9 +108,9 @@ export default function NewProductPage() {
           <button
             type="submit"
             className={styles.submitButton}
-            disabled={submitting}
+            disabled={buttonState.disabled}
           >
-            {submitting ? "Сохраняем…" : "Добавить"}
+            {buttonState.text}
           </button>
           <button
             type="button"

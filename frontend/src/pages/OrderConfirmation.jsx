@@ -1,139 +1,153 @@
-// src/pages/OrderConfirmationPage.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { fetchOrder } from "../api/orders"; // только чтение заказа
-import { initPayment } from "../api/payments"; // invoice для ⭐
-import { payWithRubles } from "../api/orders"; // оплата ₽
-import styles from "./OrderConfirmationPage.module.css";
+import toast from "react-hot-toast";
+
+import { fetchOrder, payWithRubles } from "../api/orders";
+// 👇 Импортируем только нужные функции
+import { getStarsInvoice } from "../api/payments";
+import { fetchMessages } from "../api/chat";
+import { pollOrderStatus } from "../utils/polling";
+
+import styles from "./OrderConfirmation.module.css";
+
+/* приблизительный курс: 1 ⭐ ≈ 2.015 ₽ */
+const STAR_RATE = 2.015;
 
 export default function OrderConfirmationPage() {
   const { orderId } = useParams();
   const navigate = useNavigate();
 
   const [order, setOrder] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showOptions, setShowOptions] = useState(false);
-  const [processing, setProcessing] = useState(false);
+  const [showPay, setShowPay] = useState(false);
+  const [processing, setProc] = useState(false);
 
+  /* ─── загрузка заказа + приветственного чата ─── */
   useEffect(() => {
-    loadOrder();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    load();
   }, [orderId]);
 
-  async function loadOrder() {
+  async function load() {
     setLoading(true);
     try {
-      const data = await fetchOrder(orderId);
-      setOrder(data);
+      const ord = await fetchOrder(orderId);
+      const chat = await fetchMessages(orderId);
+      setOrder(ord);
+      setMessages(chat);
     } catch (err) {
       console.error(err);
-      alert("Не удалось загрузить заказ");
+      toast.error("Не удалось загрузить заказ или чат");
     } finally {
       setLoading(false);
-      setShowOptions(false);
-      setProcessing(false);
     }
   }
 
-  // примерный курс 1 ⭐ ≈ 2.015 ₽
-  const starsCost = order ? Math.ceil(order.product.price / 2.015) : 0;
+  /* ─── helper: в чат ─── */
+  function goChat(id = orderId) {
+    navigate(`/messages/${id}`, { state: { initialMessages: messages } });
+  }
 
-  /** Оплатить звёздами – запрашиваем invoice и открываем его через WebApp API */
-  async function handlePayStars() {
-    setProcessing(true);
+  /**
+   * ✅ Helper, который ждёт подтверждения оплаты и обновляет страницу.
+   */
+  const waitForPaymentAndUpdate = async (orderId) => {
+    toast.loading("Ожидаем подтверждения оплаты...");
+    const isPaid = await pollOrderStatus(orderId);
+    toast.dismiss();
+
+    if (isPaid) {
+      await load();
+    }
+    setProc(false);
+  };
+
+  /* ─── оплата звёздами ─── */
+  async function handleStars() {
+    if (!order || processing) return;
+    setProc(true);
+
     try {
-      const { invoice } = await initPayment(order.product.id);
-      if (window?.Telegram?.WebApp?.openInvoice) {
-        window.Telegram.WebApp.openInvoice(invoice);
-      } else {
-        alert("Telegram WebApp API недоступен – откройте страницу из бота");
-      }
+      // ✅ УБРАНА ЛИШНЯЯ ЛОГИКА.
+      // На этой странице мы всегда работаем с существующим заказом.
+      const { order_id, invoice } = await getStarsInvoice(order.id);
+
+      if (!invoice) throw new Error("Сервер не вернул ссылку на счёт");
+
+      (window.Telegram?.WebApp?.openInvoice || window.open)(
+        invoice,
+        "_blank",
+        "noopener,noreferrer",
+      );
+
+      await waitForPaymentAndUpdate(order_id);
     } catch (err) {
       console.error(err);
-      alert("Не удалось инициировать оплату звёздами: " + err.message);
-    } finally {
-      // через webhook статус станет paid – попробуем перезагрузить
-      setTimeout(loadOrder, 2000);
+      toast.error(err.message || "Ошибка при оплате звездой");
+      setProc(false);
     }
   }
 
-  /** Оплатить рублями через внешний шлюз */
-  async function handlePayRubles() {
-    setProcessing(true);
+  /* ─── оплата картой (Frikassa) ─── */
+  async function handleRubles() {
+    if (!order || processing) return;
+    setProc(true);
+
     try {
-      const { payment_url } = await payWithRubles(orderId);
-      window.location.href = payment_url;
+      const { payment_url } = await payWithRubles(order.id);
+      window.open(payment_url, "_blank", "noopener,noreferrer");
+      await waitForPaymentAndUpdate(order.id);
     } catch (err) {
       console.error(err);
-      alert("Не удалось оплатить рублями: " + err.message);
-      setProcessing(false);
+      toast.error(err.message || "Ошибка оплаты картой");
+      setProc(false);
     }
   }
 
-  function handleOpenChat() {
-    navigate(`/messages/${orderId}`);
-  }
-
+  /* ─── рендер ─── */
   if (loading) return <div className={styles.placeholder}>Загрузка…</div>;
   if (!order) return <div className={styles.placeholder}>Заказ не найден</div>;
+
+  const starsPrice = Math.ceil(order.product.price / STAR_RATE);
 
   return (
     <div className={styles.container}>
       <h1>Ваш заказ #{order.id}</h1>
-
-      <div className={styles.product}>
-        <img
-          src={order.product.image_url}
-          alt={order.product.title}
-          className={styles.image}
-        />
-        <div className={styles.details}>
-          <h2>{order.product.title}</h2>
-          <p>{order.product.description}</p>
-          <p>
-            <strong>Цена:</strong> {order.product.price} ₽ ({starsCost} ⭐)
-          </p>
-        </div>
-      </div>
-
       <p>
-        <strong>Статус заказа:</strong> {order.status}
+        <strong>Статус:</strong>&nbsp;{order.status}
       </p>
 
       {order.status === "pending" ? (
-        !showOptions ? (
-          <button
-            className={styles.payButton}
-            onClick={() => setShowOptions(true)}
-          >
+        !showPay ? (
+          <button className={styles.payButton} onClick={() => setShowPay(true)}>
             Оплатить
           </button>
         ) : (
-          <div className={styles.options}>
+          <div className={styles.buttons}>
             <button
-              onClick={handlePayStars}
+              className={styles.starsBtn}
               disabled={processing}
-              className={styles.starsButton}
+              onClick={handleStars}
             >
-              ⭐ Оплатить {starsCost} ⭐
+              ⭐ Оплатить {starsPrice} ⭐
             </button>
             <button
-              onClick={handlePayRubles}
+              className={styles.rublesBtn}
               disabled={processing}
-              className={styles.rublesButton}
+              onClick={handleRubles}
             >
               ₽ Оплатить {order.product.price} ₽
             </button>
             <button
-              onClick={() => setShowOptions(false)}
-              className={styles.cancelButton}
+              className={styles.cancelBtn}
+              onClick={() => setShowPay(false)}
             >
-              Отмена
+              Отменить
             </button>
           </div>
         )
       ) : (
-        <button onClick={handleOpenChat} className={styles.chatButton}>
+        <button className={styles.chatBtn} onClick={() => goChat(order.id)}>
           Перейти в чат
         </button>
       )}

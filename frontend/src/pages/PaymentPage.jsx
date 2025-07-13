@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 
+// 1. Импортируем хук useMe
+import { useMe } from "../api/auth";
 import { apiClient } from "../api/client";
-import { initPayment, payWithFrikassa } from "../api/payments";
+import { createOrderForStars, payWithFrikassa } from "../api/payments";
+import { pollOrderStatus } from "../utils/polling";
 
 import styles from "./PaymentPage.module.css";
 
-/** приближённый курс из FAQ Telegram: 1 ⭐ ≈ 2.015 ₽ */
 const STAR_RATE = 2.015;
 
 export default function PaymentPage() {
@@ -18,8 +20,12 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
+  // 2. Получаем статус загрузки пользователя
+  const { isSuccess: isUserLoaded, isLoading: isUserLoading } = useMe();
+
   /* ─────────── загрузка товара ─────────── */
   useEffect(() => {
+    // Этот запрос можно не блокировать, так как информация о товаре, скорее всего, публичная
     (async () => {
       try {
         const { data } = await apiClient.get(`/products/${productId}`);
@@ -39,18 +45,30 @@ export default function PaymentPage() {
     });
   };
 
+  const waitForPaymentAndGoToChat = async (orderId) => {
+    toast.loading("Ожидаем подтверждения оплаты...");
+    const isPaid = await pollOrderStatus(orderId);
+    toast.dismiss();
+
+    if (isPaid) {
+      goToChat(orderId);
+    } else {
+      setBusy(false);
+      navigate(`/orders/${orderId}`);
+    }
+  };
+
   /* ─────────── оплата картой (Frikassa) ─────────── */
   const handleCardPay = async () => {
     if (!product || busy) return;
     setBusy(true);
     try {
-      const { order_id } = await initPayment(product.id); // создаём pending-заказ
-      const { redirect_url } = await payWithFrikassa(order_id); // получаем ссылку на форму
-      window.open(redirect_url, "_blank", "noopener,noreferrer"); // открываем платёжку
-      setTimeout(() => goToChat(order_id), 5_000); // через 5 с — в чат
+      const { order_id } = await createOrderForStars(product.id);
+      const { redirect_url } = await payWithFrikassa(order_id);
+      window.open(redirect_url, "_blank", "noopener,noreferrer");
+      await waitForPaymentAndGoToChat(order_id);
     } catch (err) {
       toast.error(err.message || "Ошибка оплаты картой");
-    } finally {
       setBusy(false);
     }
   };
@@ -58,33 +76,30 @@ export default function PaymentPage() {
   /* ─────────── оплата звёздами (Telegram Stars) ─────────── */
   const handleStarsPay = async () => {
     if (!product || busy) return;
-
     if (!window.Telegram?.WebApp) {
       toast.error("Откройте страницу внутри Telegram-бота, чтобы платить ⭐");
       return;
     }
-
     setBusy(true);
     try {
-      const { order_id, invoice } = await initPayment(product.id); // invoice — строка-URL
-
+      const { order_id, invoice } = await createOrderForStars(product.id);
       if (!invoice) throw new Error("Сервер не вернул ссылку на счёт");
-
-      // если WebApp умеет openInvoice — используем; иначе обычное window.open
       const open = window.Telegram.WebApp.openInvoice ?? window.open;
       open(invoice, "_blank", "noopener,noreferrer");
-
-      // даём WebApp + webhook-у время; потом переходим в чат
-      setTimeout(() => goToChat(order_id), 2_500);
+      await waitForPaymentAndGoToChat(order_id);
     } catch (err) {
       toast.error(err.message || "Ошибка при оплате ⭐");
-    } finally {
       setBusy(false);
     }
   };
 
   /* ─────────────────────────── UI ─────────────────────────── */
-  if (loading) return <div className={styles.placeholder}>Загрузка…</div>;
+  // Пока идёт проверка пользователя, показываем статус
+  if (isUserLoading)
+    return <div className={styles.placeholder}>Проверка сессии…</div>;
+
+  if (loading)
+    return <div className={styles.placeholder}>Загрузка товара…</div>;
   if (!product)
     return <div className={styles.placeholder}>Товар не найден</div>;
 
@@ -101,7 +116,8 @@ export default function PaymentPage() {
         <button
           onClick={handleCardPay}
           className={styles.payBtn}
-          disabled={busy}
+          // 3. Блокируем кнопку, пока пользователь не авторизован
+          disabled={busy || !isUserLoaded}
         >
           Оплатить картой
         </button>
@@ -109,7 +125,8 @@ export default function PaymentPage() {
         <button
           onClick={handleStarsPay}
           className={styles.starsBtn}
-          disabled={busy}
+          // 3. Блокируем кнопку, пока пользователь не авторизован
+          disabled={busy || !isUserLoaded}
         >
           Оплатить {starsPrice} ⭐
         </button>

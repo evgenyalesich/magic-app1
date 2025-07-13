@@ -1,196 +1,85 @@
 // src/pages/CatalogPage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
 
+// 1. Импортируем хук useMe
+import { useMe } from "../api/auth";
 import { fetchProducts } from "../api/products";
-import { initPayment, payWithFrikassa } from "../api/payments";
-
 import styles from "./CatalogPage.module.css";
 
-/** FAQ-курс из Telegram: 1 ⭐ ≈ 2.015 ₽ */
-const STAR_RATE = 2.015;
-
 export default function CatalogPage() {
-  /* ----------------------------- state ---------------------------------- */
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [processingId, setProcessingId] = useState(null);
-
-  /** Состояние модалки выбора оплаты */
-  const [modal, setModal] = useState({
-    open: false,
-    orderId: null,
-    invoice: null, // ← строка-ссылка
-    productId: null,
-  });
+  const [busyId, setBusyId] = useState(null);
 
   const navigate = useNavigate();
 
-  /* ---------------------- загрузка каталога ----------------------------- */
+  // 2. Получаем статус загрузки пользователя
+  const { isSuccess: isUserLoaded, isLoading: isUserLoading } = useMe();
+
   useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        setItems(await fetchProducts());
-      } catch {
-        setError("Не удалось загрузить товары");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  /* ----------------------------- «Купить» ------------------------------- */
-  const handleBuy = async (productId) => {
-    setProcessingId(productId);
-    try {
-      // backend → { order_id, invoice }  (invoice — строка URL)
-      const { order_id, invoice } = await initPayment(productId);
-      setModal({ open: true, orderId: order_id, invoice, productId });
-    } catch (err) {
-      console.error(err);
-      toast.error("Ошибка при создании заказа: " + err.message);
-    } finally {
-      setProcessingId(null);
+    // 3. Запускаем запрос, только если пользователь авторизован
+    if (isUserLoaded) {
+      (async () => {
+        try {
+          setLoading(true);
+          const products = await fetchProducts();
+          setItems(products);
+        } catch (err) {
+          console.error("Ошибка загрузки товаров:", err);
+          setError("Не удалось загрузить каталог");
+        } finally {
+          setLoading(false);
+        }
+      })();
     }
+  }, [isUserLoaded]); // 4. Добавляем зависимость
+
+  const handleBuy = (id) => {
+    if (busyId) return;
+    setBusyId(id);
+    navigate(`/payments/${id}`);
   };
 
-  /* ---------- оплата звёздами через Telegram.WebApp.openInvoice --------- */
-  const handlePayStars = () => {
-    if (!modal.invoice) return;
-    setProcessingId(modal.orderId);
+  // 5. Добавляем UI-состояние для проверки сессии
+  if (isUserLoading)
+    return <div className={styles.placeholder}>Проверка сессии…</div>;
 
-    const link = modal.invoice; // ссылка-инвойс
-
-    try {
-      if (window?.Telegram?.WebApp?.openInvoice) {
-        window.Telegram.WebApp.openInvoice(link, (status) => {
-          if (status === "paid") {
-            toast.success("Оплата прошла!");
-            navigate(`/messages/${modal.orderId}`);
-          } else if (status === "failed") {
-            toast.error("Платёж не прошёл");
-          }
-        });
-      } else {
-        // fallback — открываем в новой вкладке
-        window.open(link, "_blank");
-        toast("Счёт открыт в новой вкладке");
-        setTimeout(() => navigate(`/messages/${modal.orderId}`), 2500);
-      }
-
-      setModal((m) => ({ ...m, open: false }));
-    } catch (err) {
-      console.error(err);
-      toast.error("Не удалось открыть счёт: " + err.message);
-      setProcessingId(null);
-    }
-  };
-
-  /* ------------------------- оплата через Frikassa ---------------------- */
-  const handlePayFrikassa = async () => {
-    setProcessingId(modal.orderId);
-    try {
-      await payWithFrikassa(modal.orderId);
-      toast.success("Платёж через Frikassa инициирован!");
-      setModal((m) => ({ ...m, open: false }));
-      navigate(`/messages/${modal.orderId}`);
-    } catch (err) {
-      toast.error(err.message || "Frikassa ещё не настроена");
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  /* ------------------------------ UI ------------------------------------ */
-  if (loading) return <div className={styles.placeholder}>Загрузка…</div>;
+  if (loading)
+    return <div className={styles.placeholder}>Загрузка каталога…</div>;
   if (error) return <div className={styles.placeholder}>{error}</div>;
   if (!items.length)
     return <div className={styles.placeholder}>Товаров пока нет</div>;
 
-  const currentProduct =
-    modal.productId !== null
-      ? items.find((i) => i.id === modal.productId)
-      : null;
-
-  const starsCost = currentProduct
-    ? Math.ceil(currentProduct.price / STAR_RATE)
-    : 0;
-
   return (
-    <div className={styles.container}>
-      {/* ----------------------- карточки товаров ----------------------- */}
-      <div className={styles.grid}>
-        {items.map((item) => (
-          <div key={item.id} className={styles.card}>
+    <div className={styles.grid}>
+      {items.map((item) => (
+        <article key={item.id} className={styles.card}>
+          <div className={styles.pic}>
             <img
               src={item.image_url}
               alt={item.title}
-              className={styles.cardImage}
+              loading="lazy"
+              className={styles.productImage}
             />
-
-            <div className={styles.cardContent}>
-              <h2 className={styles.title}>{item.title}</h2>
-              <p className={styles.description}>{item.description}</p>
-
-              <div className={styles.footer}>
-                <span className={styles.price}>{item.price} ₽</span>
-                <button
-                  className={styles.button}
-                  disabled={processingId === item.id}
-                  onClick={() => handleBuy(item.id)}
-                >
-                  {processingId === item.id ? "Обработка…" : "Купить"}
-                </button>
-              </div>
-            </div>
           </div>
-        ))}
-      </div>
-
-      {/* ---------------- модальное окно выбора оплаты ------------------ */}
-      {modal.open && (
-        <div
-          className={styles.modalOverlay}
-          onClick={() => setModal((m) => ({ ...m, open: false }))}
-        >
-          <div
-            className={styles.modal}
-            onClick={(e) => e.stopPropagation()} // стопим "прокол" overlay
-          >
-            <h3>Выберите способ оплаты</h3>
-
-            <div className={styles.modalButtons}>
-              {modal.invoice && (
-                <button
-                  className={styles.starsButton}
-                  disabled={processingId === modal.orderId}
-                  onClick={handlePayStars}
-                >
-                  ⭐ Оплатить {starsCost} ⭐
-                </button>
-              )}
-
-              <button
-                className={styles.frikassaButton}
-                disabled={processingId === modal.orderId}
-                onClick={handlePayFrikassa}
-              >
-                Оплатить Frikassa
-              </button>
+          <div className={styles.body}>
+            <h2 className={styles.title}>{item.title}</h2>
+            <p className={styles.desc}>{item.description}</p>
+            <div className={styles.priceRow}>
+              <span className={styles.price}>{item.price} ₽</span>
             </div>
-
             <button
-              className={styles.closeModal}
-              onClick={() => setModal((m) => ({ ...m, open: false }))}
+              className={styles.buyBtn}
+              disabled={busyId === item.id}
+              onClick={() => handleBuy(item.id)}
             >
-              Отмена
+              {busyId === item.id ? "⌛" : "Купить"}
             </button>
           </div>
-        </div>
-      )}
+        </article>
+      ))}
     </div>
   );
 }

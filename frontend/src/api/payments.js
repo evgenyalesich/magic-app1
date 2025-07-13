@@ -1,34 +1,33 @@
 // src/api/payments.js
-const API_BASE = import.meta.env.VITE_API_URL || "";
+import { apiClient } from "./client"; // Используем общий клиент
 
-/* helper ------------------------------------------------------------------ */
+/**
+ * Отправляет POST-запрос
+ */
 async function postJson(path, payload = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  // пробуем json → иначе text
-  let data;
-  try {
-    data = await res.json();
-  } catch {
-    data = await res.text();
-  }
-
-  if (!res.ok) {
-    throw new Error(
-      data?.detail || data?.message || data || `HTTP ${res.status}`,
-    );
-  }
+  const { data } = await apiClient.post(path, payload);
   return data;
 }
 
-/* public ------------------------------------------------------------------ */
-export const initPayment = (productId, quantity = 1) =>
-  postJson("/api/payments", { product_id: productId, quantity });
+/**
+ * Создать новый pending-заказ (количество всегда = 1)
+ * и получить invoice-ссылку для оплаты звёздами.
+ */
+export function createOrderForStars(productId) {
+  return postJson("/payments/", { product_id: productId });
+}
 
-export const payWithFrikassa = (orderId) =>
-  postJson("/api/payments/frikassa", { order_id: orderId });
+/**
+ * ✅ ВОССТАНОВЛЕННАЯ ФУНКЦИЯ
+ * Получить invoice-ссылку для уже существующего pending-заказа.
+ */
+export function getStarsInvoice(orderId) {
+  return postJson(`/payments/${orderId}/stars`);
+}
+
+/**
+ * Получить ссылку на оплату через Frikassa для существующего заказа.
+ */
+export function payWithFrikassa(orderId) {
+  return postJson("/payments/frikassa", { order_id: orderId });
+}

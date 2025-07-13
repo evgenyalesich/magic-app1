@@ -1,42 +1,397 @@
-/* 1) Сброс базовых отступов и box-sizing */
+/* -------------------------------------------------------------
+   🟣 0. Palette & tokens  (пастельно-лиловая тема)
+---------------------------------------------------------------- */
+:root {
+  /* background */
+  --bg: #faf8ff; /* silky-lavender gradient base        */
+  --card-bg: #ffffff; /* карточки / модальные                */
+  --header-bg: #ffffffcc; /* полупрозр. top-bar + blur           */
+  --overlay: rgb(0 0 0 / 0.45);
+
+  /* text - улучшенные лиловые оттенки с лучшим контрастом */
+  --text-main: #2d1b3d; /* основной текст - очень темный лиловый */
+  --text-secondary: #4a3a5c; /* вторичный текст - темно-лиловый */
+  --text-muted: #6b5687; /* приглушенный текст - средний лиловый */
+  --text-light: #8b7aa3; /* светлый лиловый для подписей */
+
+  /* accent (lavender) */
+  --accent: #ae8bff;
+  --accent-hover: #975dff;
+  --accent-light: #efeaff;
+  --accent-dark: #7c5ce6; /* темный акцент для заголовков */
+
+  /* misc */
+  --star: #ffc74d;
+  --radius: 18px;
+
+  /* shadows */
+  --shadow-s: 0 2px 4px rgb(0 0 0 / 0.05);
+  --shadow-m: 0 4px 10px rgb(0 0 0 / 0.07);
+  --shadow-l: 0 8px 22px rgb(0 0 0 / 0.08);
+}
+
+/* -------------------------------------------------------------
+   1. Reset + typography
+---------------------------------------------------------------- */
 *,
-*::before,
-*::after {
-  margin: 0;
-  padding: 0;
+::before,
+::after {
   box-sizing: border-box;
 }
 
-/* 2) Глобальные CSS-переменные (Design Tokens) */
-:root {
-  /* Цвета */
-  --color-bg: #f7f6f3;
-  --color-surface: #ffffff;
-  --color-primary: #d8c3a5;
-  --color-secondary: #a6bdbd;
-  --color-accent: #f3e9e5;
-  --color-text: #333333;
-  --color-text-light: #666666;
-
-  /* Типографика */
-  --font-family-base: "Helvetica Neue", Arial, sans-serif;
-  --font-size-base: 16px;
-  --line-height-base: 1.5;
-
-  /* Отступы */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #f7f6fd 0%, #f5f4fc 40%, #f3f2fa 100%);
+  color: var(--text-main); /* теперь лиловый */
+  font:
+    400 15px/1.4 "Inter",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* 3) Базовые стили body */
-body {
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-base);
-  line-height: var(--line-height-base);
-  min-height: 100vh;
+a {
+  color: var(--text-secondary); /* ссылки лиловые */
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  color: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* Заголовки - делаем их более читаемыми */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-main); /* просто темный лиловый без градиента */
+  font-weight: 600;
+}
+
+/* Для особых заголовков можно использовать градиент */
+.gradient-title {
+  background: linear-gradient(
+    135deg,
+    var(--accent-dark) 0%,
+    var(--accent) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* thin scrollbars (Telegram web-view) */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-light);
+  border-radius: 4px;
+}
+
+/* -------------------------------------------------------------
+   2. Re-usable helpers
+---------------------------------------------------------------- */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-m);
+}
+
+.btn {
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  transition:
+    background 0.2s,
+    opacity 0.2s,
+    color 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-accent:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+/* Новые стили для текста */
+.text-main {
+  color: var(--text-main);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-light {
+  color: var(--text-light);
+}
+
+.price {
+  font-weight: 700;
+  color: var(--text-main); /* цены читаемые темные */
+}
+
+.star {
+  color: var(--star);
+}
+
+/* -------------------------------------------------------------
+   3. Header / top-bar
+---------------------------------------------------------------- */
+.header {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center; /* Центрируем логотип */
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--header-bg);
+  backdrop-filter: blur(12px);
+  z-index: 1010;
+  box-shadow: var(--shadow-s);
+}
+
+/* Лого всегда по центру */
+.logo {
+  font-size: 1.13rem;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-main);
+}
+
+/* Бургер-меню и Admin-метка абсолютом, чтобы не смещали центр */
+.burger {
+  position: absolute;
+  left: 12px; /* на своём месте слева */
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card-bg);
+  border-radius: 50%;
+  box-shadow: var(--shadow-s);
+  transition: background 0.15s;
+}
+
+.burger:hover {
+  background: var(--accent-light);
+}
+
+.burger svg {
+  width: 18px;
+  height: 18px;
+  fill: var(--text-secondary);
+}
+
+.adminTag {
+  position: absolute;
+  right: 12px; /* на своём месте справа */
+  padding: 2px 7px;
+  border-radius: 8px;
+  font-size: 0.73rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  background: var(--accent-light);
+  color: var(--accent-hover);
+}
+
+/* -------------------------------------------------------------
+   4. Side-menu (slide-in)
+---------------------------------------------------------------- */
+.sideOverlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+  z-index: 1050;
+}
+
+.sideOverlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sideMenu {
+  position: fixed;
+  top: 0;
+  left: -260px;
+  height: 100%;
+  width: 240px;
+  padding: 20px 18px 60px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow-l);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  overscroll-behavior-contain: contain;
+  transition: transform 0.28s cubic-bezier(0.4, 0.16, 0.2, 1);
+  z-index: 1060;
+}
+
+.sideMenu.open {
+  transform: translateX(260px);
+}
+
+.sideMenu a {
+  padding: 11px 12px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition:
+    background 0.18s,
+    color 0.18s;
+}
+
+.sideMenu a:hover {
+  background: var(--accent-light);
+  color: var(--accent-hover);
+}
+
+/* -------------------------------------------------------------
+   5. Дополнительные стили для различных элементов
+---------------------------------------------------------------- */
+
+/* Описания товаров/услуг */
+.description {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Метки и теги */
+.tag {
+  color: var(--text-light);
+  font-size: 0.8rem;
+}
+
+/* Названия товаров/услуг */
+.title {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+/* Подзаголовки */
+.subtitle {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Статистика и числа */
+.stats {
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------
+   6. Формы и кнопки отправки
+---------------------------------------------------------------- */
+
+/* Кнопки отправки сообщений */
+button[type="submit"],
+.send-button,
+.submit-button {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button[type="submit"]:hover,
+.send-button:hover,
+.submit-button:hover {
+  background: var(--accent-hover) !important;
+}
+
+/* Поля ввода */
+input,
+textarea,
+select {
+  color: var(--text-main) !important;
+  background: var(--card-bg) !important;
+  border: 1px solid var(--accent-light) !important;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent) !important;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+
+/* Плейсхолдеры */
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Для Telegram Web App специфических элементов */
+.tgme_widget_message_button,
+.tg-spoiler,
+.reply-markup-button {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+/* -------------------------------------------------------------
+   7. Telegram web-view overscroll-fix
+---------------------------------------------------------------- */
+@supports (-webkit-touch-callout: none) {
+  body {
+    overscroll-behavior: contain;
+  }
 }
